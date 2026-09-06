@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Teste — EquationModel</title>
+</head>
+
+<body>
+    <h1>Teste do EquationModel</h1>
+
+    <pre id="output"></pre>
+
+    <script type="module">
+        import { EquationModel }
+            from "./src/math/algebra/EquationModel.js";
+
+        const output = document.getElementById("output");
+
+        function testar(nome, equationData, expected) {
+            const equation = EquationModel.from(equationData);
+            const solution = equation.getSolution();
+
+            const passou =
+                solution.type === "UNIQUE" &&
+                Math.abs(solution.value - expected) < 1e-9;
+
+            output.textContent +=
+                `${passou ? "✅" : "❌"} ${nome}\n` +
+                `   Equação: ${equation.toString()}\n` +
+                `   Solução: ${solution.value}\n` +
+                `   Esperado: ${expected}\n\n`;
+        }
+
+        testar(
+            "Teste 1",
+            {
+                left: [
+                    { type: "x", coefficient: 1 },
+                    { type: "constant", value: 3 }
+                ],
+                right: [
+                    { type: "constant", value: 8 }
+                ]
+            },
+            5
+        );
+
+        testar(
+            "Teste 2",
+            {
+                left: [
+                    { type: "x", coefficient: 2 },
+                    { type: "constant", value: 4 }
+                ],
+                right: [
+                    { type: "constant", value: 14 }
+                ]
+            },
+            5
+        );
+
+        testar(
+            "Teste 3",
+            {
+                left: [
+                    { type: "x", coefficient: 3 },
+                    { type: "constant", value: 6 }
+                ],
+                right: [
+                    { type: "constant", value: 21 }
+                ]
+            },
+            5
+        );
+
+        testar(
+            "Teste 4",
+            {
+                left: [
+                    { type: "x", coefficient: 2 },
+                    { type: "constant", value: 3 }
+                ],
+                right: [
+                    { type: "x", coefficient: 1 },
+                    { type: "constant", value: 8 }
+                ]
+            },
+            5
+        );
+    </script>
+</body>
+</html>
