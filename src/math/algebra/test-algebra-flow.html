@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Teste — Fluxo Algébrico Completo</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: white;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #f5c542;
+        }
+
+        #resultado {
+            white-space: pre-line;
+            font-family: monospace;
+            line-height: 1.8;
+            background: #111827;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .ok {
+            color: #4ade80;
+        }
+
+        .erro {
+            color: #f87171;
+        }
+
+        .info {
+            color: #93c5fd;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>Teste — Fluxo Algébrico Completo</h1>
+
+<div id="resultado"></div>
+
+<script type="module">
+
+import { EquationModel }
+    from "./EquationModel.js";
+
+import { EquivalenceRules }
+    from "./EquivalenceRules.js";
+
+import { AlgebraicSimplifier }
+    from "./AlgebraicSimplifier.js";
+
+import { EquationTransformation }
+    from "./EquationTransformation.js";
+
+import { BalanceModel }
+    from "../../representations/balance/BalanceModel.js";
+
+
+const resultados = [];
+
+
+/**
+ * ============================================================
+ * UTILITÁRIOS DE TESTE
+ * ============================================================
+ */
+
+function testar(nome, condicao) {
+
+    if (condicao) {
+        resultados.push("🟢 " + nome);
+    } else {
+        resultados.push("🔴 " + nome);
+    }
+}
+
+
+/**
+ * Retorna o valor numérico de uma solução única.
+ *
+ * EquationModel.getSolution() possui um contrato explícito:
+ *
+ * {
+ *     type: "UNIQUE",
+ *     value: número
+ * }
+ *
+ * Para os testes que precisam comparar apenas o valor,
+ * usamos esta função auxiliar.
+ */
+function valorDaSolucao(equation) {
+
+    const solution = equation.getSolution();
+
+    if (!solution || solution.type !== "UNIQUE") {
+        return null;
+    }
+
+    return solution.value;
+}
+
+
+/**
+ * ============================================================
+ * 1. EQUAÇÃO INICIAL
+ * ============================================================
+ */
+
+const equacaoInicial = new EquationModel({
+
+    left: [
+        {
+            type: "x",
+            coefficient: 2
+        },
+        {
+            type: "constant",
+            value: 4
+        }
+    ],
+
+    right: [
+        {
+            type: "constant",
+            value: 14
+        }
+    ]
+
+});
+
+
+testar(
+    "1. Equação inicial é 2x + 4 = 14",
+    equacaoInicial.toString() === "2x + 4 = 14"
+);
+
+
+/**
+ * ============================================================
+ * 2. VERIFICAR SOLUÇÃO INICIAL
+ * ============================================================
+ */
+
+const solucaoInicial =
+    equacaoInicial.getSolution();
+
+
+testar(
+    "2. A equação inicial possui solução única",
+    solucaoInicial.type === "UNIQUE"
+);
+
+testar(
+    "3. A solução inicial é x = 5",
+    solucaoInicial.value === 5
+);
+
+
+/**
+ * ============================================================
+ * 3. BALANÇA INICIAL
+ * ============================================================
+ */
+
+const balancaInicial =
+    BalanceModel.fromEquation(equacaoInicial);
+
+
+testar(
+    "4. A balança inicial está equilibrada para x = 5",
+    balancaInicial.isBalanced(5) === true
+);
+
+
+/**
+ * ============================================================
+ * 4. RETIRAR 4 DOS DOIS LADOS
+ * ============================================================
+ */
+
+const resultadoSubtracao =
+    EquivalenceRules.subtractFromBothSides(
+        equacaoInicial,
+        4
+    );
+
+
+testar(
+    "5. A subtração preserva a equivalência",
+    resultadoSubtracao.equivalent === true
+);
+
+testar(
+    "6. A regra registrada é SUBTRACT_BOTH_SIDES",
+    resultadoSubtracao.rule === "SUBTRACT_BOTH_SIDES"
+);
+
+testar(
+    "7. A quantidade registrada é 4",
+    resultadoSubtracao.amount === 4
+);
+
+
+/**
+ * ============================================================
+ * 5. REGISTRAR TRANSFORMAÇÃO
+ * ============================================================
+ */
+
+const transformacao1 =
+    EquationTransformation.fromRuleResult(
+        equacaoInicial,
+        resultadoSubtracao
+    );
+
+
+testar(
+    "8. A transformação registra a equação anterior",
+    transformacao1.before.toString() ===
+        equacaoInicial.toString()
+);
+
+
+/**
+ * ============================================================
+ * 6. SIMPLIFICAR
+ * ============================================================
+ */
+
+const equacaoAposSubtracao =
+    resultadoSubtracao.equation;
+
+const equacaoSimplificada1 =
+    AlgebraicSimplifier.simplifyEquation(
+        equacaoAposSubtracao
+    );
+
+
+testar(
+    "9. Após simplificar, temos 2x = 10",
+    equacaoSimplificada1.toString() === "2x = 10"
+);
+
+
+/**
+ * ============================================================
+ * 7. SOLUÇÃO CONTINUA SENDO 5
+ * ============================================================
+ */
+
+const solucaoIntermediaria =
+    equacaoSimplificada1.getSolution();
+
+
+testar(
+    "10. A equação simplificada possui solução única",
+    solucaoIntermediaria.type === "UNIQUE"
+);
+
+testar(
+    "11. A equação simplificada continua com solução 5",
+    solucaoIntermediaria.value === 5
+);
+
+
+/**
+ * ============================================================
+ * 8. BALANÇA APÓS SUBTRAÇÃO
+ * ============================================================
+ */
+
+const balancaIntermediaria =
+    BalanceModel.fromEquation(
+        equacaoSimplificada1
+    );
+
+
+testar(
+    "12. A balança de 2x = 10 está equilibrada para x = 5",
+    balancaIntermediaria.isBalanced(5) === true
+);
+
+
+/**
+ * ============================================================
+ * 9. DIVIDIR OS DOIS LADOS POR 2
+ * ============================================================
+ */
+
+const resultadoDivisao =
+    EquivalenceRules.divideBothSides(
+        equacaoSimplificada1,
+        2
+    );
+
+
+testar(
+    "13. A divisão preserva a equivalência",
+    resultadoDivisao.equivalent === true
+);
+
+testar(
+    "14. A regra registrada é DIVIDE_BOTH_SIDES",
+    resultadoDivisao.rule === "DIVIDE_BOTH_SIDES"
+);
+
+testar(
+    "15. O divisor registrado é 2",
+    resultadoDivisao.divisor === 2
+);
+
+
+/**
+ * ============================================================
+ * 10. SIMPLIFICAR NOVAMENTE
+ * ============================================================
+ */
+
+const equacaoFinal =
+    AlgebraicSimplifier.simplifyEquation(
+        resultadoDivisao.equation
+    );
+
+
+testar(
+    "16. A equação final é x = 5",
+    equacaoFinal.toString() === "x = 5"
+);
+
+
+/**
+ * ============================================================
+ * 11. SOLUÇÃO FINAL
+ * ============================================================
+ */
+
+const solucaoFinal =
+    equacaoFinal.getSolution();
+
+
+testar(
+    "17. A equação final possui solução única",
+    solucaoFinal.type === "UNIQUE"
+);
+
+testar(
+    "18. A solução final é 5",
+    solucaoFinal.value === 5
+);
+
+
+/**
+ * ============================================================
+ * 12. VERIFICAÇÃO DA SOLUÇÃO
+ * ============================================================
+ */
+
+testar(
+    "19. x = 5 satisfaz a equação final",
+    equacaoFinal.isSolution(5) === true
+);
+
+
+/**
+ * ============================================================
+ * 13. BALANÇA FINAL
+ * ============================================================
+ */
+
+const balancaFinal =
+    BalanceModel.fromEquation(
+        equacaoFinal
+    );
+
+
+testar(
+    "20. A balança final está equilibrada para x = 5",
+    balancaFinal.isBalanced(5) === true
+);
+
+
+/**
+ * ============================================================
+ * 14. TRANSFORMAÇÃO FINAL
+ * ============================================================
+ */
+
+const transformacao2 =
+    EquationTransformation.fromRuleResult(
+        equacaoSimplificada1,
+        resultadoDivisao
+    );
+
+
+testar(
+    "21. A segunda transformação registra 2x = 10 como origem",
+    transformacao2.before.toString() === "2x = 10"
+);
+
+
+/**
+ * ============================================================
+ * 15. INDEPENDÊNCIA DOS ESTADOS
+ * ============================================================
+ */
+
+testar(
+    "22. A equação inicial continua sendo 2x + 4 = 14",
+    equacaoInicial.toString() === "2x + 4 = 14"
+);
+
+testar(
+    "23. A equação final é independente da inicial",
+    equacaoFinal !== equacaoInicial
+);
+
+
+/**
+ * ============================================================
+ * 16. COERÊNCIA GLOBAL DO FLUXO
+ * ============================================================
+ */
+
+testar(
+    "24. A solução inicial, intermediária e final é 5",
+    solucaoInicial.value === 5 &&
+    solucaoIntermediaria.value === 5 &&
+    solucaoFinal.value === 5
+);
+
+testar(
+    "25. Todas as etapas preservaram a equivalência",
+    resultadoSubtracao.equivalent === true &&
+    resultadoDivisao.equivalent === true
+);
+
+
+/**
+ * ============================================================
+ * RESULTADO
+ * ============================================================
+ */
+
+document.getElementById("resultado").innerHTML =
+    resultados
+        .map(resultado => {
+
+            if (resultado.startsWith("🟢")) {
+                return `<div class="ok">${resultado}</div>`;
+            }
+
+            return `<div class="erro">${resultado}</div>`;
+        })
+        .join("");
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Teste — EquationTransformation</title>
+</head>
+<body>
+
+<h1>Teste do EquationTransformation</h1>
+
+<pre id="resultado"></pre>
+
+<script type="module">
+
+import { EquationModel }
+    from "./src/math/algebra/EquationModel.js";
+
+import { EquivalenceRules }
+    from "./src/math/algebra/EquivalenceRules.js";
+
+import { EquationTransformation }
+    from "./src/math/algebra/EquationTransformation.js";
+
+const resultados = [];
+
+function testar(nome, condicao) {
+
+    resultados.push(
+        `${condicao ? "✅" : "❌"} ${nome}`
+    );
+}
+
+/*
+ * EQUAÇÃO ORIGINAL
+ *
+ * x + 3 = 8
+ */
+
+const original = EquationModel.from({
+
+    left: [
+        { type: "x", coefficient: 1 },
+        { type: "constant", value: 3 }
+    ],
+
+    right: [
+        { type: "constant", value: 8 }
+    ]
+
+});
+
+/*
+ * EXECUTA UMA REGRA MATEMÁTICA
+ */
+
+const ruleResult =
+    EquivalenceRules.subtractFromBothSides(
+        original,
+        3
+    );
+
+/*
+ * REGISTRA A TRANSFORMAÇÃO
+ */
+
+const transformation =
+    EquationTransformation.fromRuleResult(
+        original,
+        ruleResult
+    );
+
+/*
+ * TESTE 1
+ */
+
+testar(
+    "A transformação registra a equação anterior",
+    transformation.before.toString() === "x + 3 = 8"
+);
+
+/*
+ * TESTE 2
+ */
+
+testar(
+    "A transformação registra a equação posterior",
+    transformation.after.getSolution().value === 5
+);
+
+/*
+ * TESTE 3
+ */
+
+testar(
+    "A transformação registra a equivalência",
+    transformation.equivalent === true
+);
+
+/*
+ * TESTE 4
+ */
+
+testar(
+    "A transformação registra a regra",
+    transformation.rule === "SUBTRACT_BOTH_SIDES"
+);
+
+/*
+ * TESTE 5
+ */
+
+testar(
+    "A transformação registra a ação",
+    transformation.action.type === "SUBTRACT_BOTH_SIDES"
+);
+
+/*
+ * TESTE 6
+ */
+
+testar(
+    "A transformação registra o valor utilizado",
+    transformation.action.amount === 3
+);
+
+/*
+ * TESTE 7
+ */
+
+testar(
+    "O estado anterior é uma cópia independente",
+    transformation.before !== original
+);
+
+/*
+ * TESTE 8
+ */
+
+testar(
+    "O estado posterior é uma cópia independente",
+    transformation.after !== ruleResult.equation
+);
+
+/*
+ * TESTE 9
+ */
+
+const registro = transformation.toJSON();
+
+testar(
+    "A transformação pode ser serializada",
+    registro.before === "x + 3 = 8"
+);
+
+/*
+ * TESTE 10
+ */
+
+testar(
+    "A transformação pode ser clonada",
+    transformation.clone().after.toString()
+        === transformation.after.toString()
+);
+
+document.getElementById("resultado").textContent =
+    resultados.join("\n");
+
+</script>
+
+</body>
+</html>

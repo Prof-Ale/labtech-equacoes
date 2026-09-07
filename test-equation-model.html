@@ -4,89 +4,118 @@
     <meta charset="UTF-8">
     <title>Teste — EquationModel</title>
 </head>
-
 <body>
-    <h1>Teste do EquationModel</h1>
 
-    <pre id="output"></pre>
+<h1>Teste do EquationModel</h1>
 
-    <script type="module">
-        import { EquationModel }
-            from "./src/math/algebra/EquationModel.js";
+<pre id="resultado"></pre>
 
-        const output = document.getElementById("output");
+<script type="module">
+import { EquationModel } from "./src/math/algebra/EquationModel.js";
 
-        function testar(nome, equationData, expected) {
-            const equation = EquationModel.from(equationData);
-            const solution = equation.getSolution();
+const resultados = [];
 
-            const passou =
-                solution.type === "UNIQUE" &&
-                Math.abs(solution.value - expected) < 1e-9;
+function testar(nome, condicao, esperado) {
+    const ok = condicao === esperado;
 
-            output.textContent +=
-                `${passou ? "✅" : "❌"} ${nome}\n` +
-                `   Equação: ${equation.toString()}\n` +
-                `   Solução: ${solution.value}\n` +
-                `   Esperado: ${expected}\n\n`;
-        }
+    resultados.push(
+        `${ok ? "✅" : "❌"} ${nome} — esperado: ${esperado}, obtido: ${condicao}`
+    );
+}
 
-        testar(
-            "Teste 1",
-            {
-                left: [
-                    { type: "x", coefficient: 1 },
-                    { type: "constant", value: 3 }
-                ],
-                right: [
-                    { type: "constant", value: 8 }
-                ]
-            },
-            5
-        );
+// 1
+const eq1 = EquationModel.from({
+    left: [
+        { type: "x", coefficient: 1 },
+        { type: "constant", value: 3 }
+    ],
+    right: [
+        { type: "constant", value: 8 }
+    ]
+});
 
-        testar(
-            "Teste 2",
-            {
-                left: [
-                    { type: "x", coefficient: 2 },
-                    { type: "constant", value: 4 }
-                ],
-                right: [
-                    { type: "constant", value: 14 }
-                ]
-            },
-            5
-        );
+testar(
+    "x + 3 = 8 → solução 5",
+    eq1.getSolution().value,
+    5
+);
 
-        testar(
-            "Teste 3",
-            {
-                left: [
-                    { type: "x", coefficient: 3 },
-                    { type: "constant", value: 6 }
-                ],
-                right: [
-                    { type: "constant", value: 21 }
-                ]
-            },
-            5
-        );
+// 2
+const eq2 = EquationModel.from({
+    left: [
+        { type: "x", coefficient: 2 },
+        { type: "constant", value: 4 }
+    ],
+    right: [
+        { type: "constant", value: 14 }
+    ]
+});
 
-        testar(
-            "Teste 4",
-            {
-                left: [
-                    { type: "x", coefficient: 2 },
-                    { type: "constant", value: 3 }
-                ],
-                right: [
-                    { type: "x", coefficient: 1 },
-                    { type: "constant", value: 8 }
-                ]
-            },
-            5
-        );
-    </script>
+testar(
+    "2x + 4 = 14 → solução 5",
+    eq2.getSolution().value,
+    5
+);
+
+// 3
+const eq3 = EquationModel.from({
+    left: [
+        { type: "x", coefficient: 3 },
+        { type: "constant", value: 6 }
+    ],
+    right: [
+        { type: "constant", value: 21 }
+    ]
+});
+
+testar(
+    "3x + 6 = 21 → solução 5",
+    eq3.getSolution().value,
+    5
+);
+
+// 4
+const eq4 = EquationModel.from({
+    left: [
+        { type: "x", coefficient: 2 },
+        { type: "constant", value: 3 }
+    ],
+    right: [
+        { type: "x", coefficient: 1 },
+        { type: "constant", value: 8 }
+    ]
+});
+
+testar(
+    "2x + 3 = x + 8 → solução 5",
+    eq4.getSolution().value,
+    5
+);
+
+// 5 — avaliação
+const avaliacao = eq1.evaluate(5);
+
+testar(
+    "x = 5 → lado esquerdo = 8",
+    avaliacao.left,
+    8
+);
+
+testar(
+    "x = 5 → lado direito = 8",
+    avaliacao.right,
+    8
+);
+
+testar(
+    "x = 5 satisfaz a equação",
+    eq1.isSolution(5),
+    true
+);
+
+document.getElementById("resultado").textContent =
+    resultados.join("\n");
+</script>
+
 </body>
 </html>

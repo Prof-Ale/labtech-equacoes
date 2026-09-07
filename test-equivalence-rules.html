@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Teste — EquivalenceRules</title>
+</head>
+<body>
+
+<h1>Teste do EquivalenceRules</h1>
+
+<pre id="resultado"></pre>
+
+<script type="module">
+
+import { EquationModel } from "./src/math/algebra/EquationModel.js";
+import { EquivalenceRules } from "./src/math/algebra/EquivalenceRules.js";
+
+const resultados = [];
+
+function testar(nome, condicao) {
+    resultados.push(
+        `${condicao ? "✅" : "❌"} ${nome}`
+    );
+}
+
+/*
+ * EQUAÇÃO ORIGINAL
+ *
+ * x + 3 = 8
+ */
+
+const original = EquationModel.from({
+    left: [
+        { type: "x", coefficient: 1 },
+        { type: "constant", value: 3 }
+    ],
+    right: [
+        { type: "constant", value: 8 }
+    ]
+});
+
+/*
+ * TRANSFORMAÇÃO
+ *
+ * Subtrair 3 dos dois lados.
+ */
+
+const transformacao =
+    EquivalenceRules.subtractFromBothSides(original, 3);
+
+const resultado = transformacao.equation;
+
+/*
+ * TESTE 1
+ *
+ * A transformação deve ser considerada equivalente.
+ */
+
+testar(
+    "Subtrair 3 dos dois lados preserva a equivalência",
+    transformacao.equivalent === true
+);
+
+/*
+ * TESTE 2
+ *
+ * A regra aplicada deve estar registrada.
+ */
+
+testar(
+    "A regra aplicada foi registrada",
+    transformacao.rule === "SUBTRACT_BOTH_SIDES"
+);
+
+/*
+ * TESTE 3
+ *
+ * O valor utilizado deve estar registrado.
+ */
+
+testar(
+    "O valor 3 foi registrado",
+    transformacao.amount === 3
+);
+
+/*
+ * TESTE 4
+ *
+ * A equação resultante deve continuar tendo
+ * solução x = 5.
+ */
+
+testar(
+    "A equação resultante possui solução x = 5",
+    resultado.getSolution().value === 5
+);
+
+/*
+ * TESTE 5
+ *
+ * x = 5 deve satisfazer a nova equação.
+ */
+
+testar(
+    "x = 5 satisfaz a equação resultante",
+    resultado.isSolution(5)
+);
+
+/*
+ * TESTE 6
+ *
+ * A equação original NÃO pode ser alterada.
+ */
+
+testar(
+    "A equação original continua sendo x + 3 = 8",
+    original.toString() === "x + 3 = 8"
+);
+
+/*
+ * TESTE 7
+ *
+ * A nova equação deve representar x + (-3) = 8 + (-3).
+ *
+ * A representação textual atual pode simplificar
+ * apenas parcialmente os termos.
+ */
+
+testar(
+    "Foi criada uma nova instância de EquationModel",
+    resultado !== original
+);
+
+/*
+ * TESTE 8
+ *
+ * A nova equação continua sendo uma EquationModel.
+ */
+
+testar(
+    "O resultado é uma instância de EquationModel",
+    resultado instanceof EquationModel
+);
+
+document.getElementById("resultado").textContent =
+    resultados.join("\n");
+
+</script>
+
+</body>
+</html>

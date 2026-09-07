@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Teste Integrado - Transformação de Equação</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f2742;
+            color: white;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #d9a441;
+        }
+
+        #resultado {
+            white-space: pre-line;
+            font-size: 18px;
+            line-height: 1.8;
+            background: #17395f;
+            padding: 20px;
+            border-radius: 12px;
+            min-height: 100px;
+        }
+
+        .erro-sistema {
+            color: #ff8a8a;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Teste Integrado - Transformação de Equação</h1>
+
+    <div id="resultado"></div>
+
+    <script type="module">
+
+        /*
+         * ============================================================
+         * IMPORTAÇÕES
+         * ============================================================
+         */
+
+        import { EquationModel }
+    from "./EquationModel.js";
+
+import { EquivalenceRules }
+    from "./EquivalenceRules.js";
+
+import { EquationTransformation }
+    from "./EquationTransformation.js";
+
+import { BalanceModel }
+    from "../../representations/balance/BalanceModel.js";
+
+        /*
+         * ============================================================
+         * ESTRUTURA DE TESTE
+         * ============================================================
+         */
+
+        const resultados = [];
+
+
+        function testar(nome, condicao) {
+
+            if (condicao) {
+
+                resultados.push(
+                    "✅ " + nome
+                );
+
+            } else {
+
+                resultados.push(
+                    "❌ " + nome
+                );
+
+            }
+        }
+
+
+        /*
+         * ============================================================
+         * EXECUÇÃO PROTEGIDA
+         *
+         * Se alguma interface estiver diferente do esperado,
+         * mostramos o erro na própria página.
+         * ============================================================
+         */
+
+        try {
+
+
+            /*
+             * ========================================================
+             * 1. EQUAÇÃO ORIGINAL
+             * ========================================================
+             *
+             * 2x + 4 = 14
+             */
+
+            const equation = new EquationModel({
+
+                left: [
+                    {
+                        type: "x",
+                        coefficient: 2
+                    },
+                    {
+                        type: "constant",
+                        value: 4
+                    }
+                ],
+
+                right: [
+                    {
+                        type: "constant",
+                        value: 14
+                    }
+                ]
+
+            });
+
+
+            testar(
+                "A equação original foi criada",
+                equation instanceof EquationModel
+            );
+
+
+            /*
+             * ========================================================
+             * 2. SOLUÇÃO DA EQUAÇÃO ORIGINAL
+             * ========================================================
+             */
+
+            const originalSolution =
+                equation.getSolution();
+
+
+            testar(
+                "A solução da equação original é 5",
+                originalSolution &&
+                originalSolution.value === 5
+            );
+
+
+            /*
+             * ========================================================
+             * 3. BALANÇA ORIGINAL
+             * ========================================================
+             */
+
+            const balanceBefore =
+                BalanceModel.fromEquation(
+                    equation
+                );
+
+
+            testar(
+                "A balança foi criada a partir da equação",
+                balanceBefore instanceof BalanceModel
+            );
+
+
+            const evaluationBefore =
+                balanceBefore.evaluate(5);
+
+
+            testar(
+                "Para x = 5, o lado esquerdo vale 14",
+                evaluationBefore.left === 14
+            );
+
+
+            testar(
+                "Para x = 5, o lado direito vale 14",
+                evaluationBefore.right === 14
+            );
+
+
+            testar(
+                "Para x = 5, a balança original está equilibrada",
+                evaluationBefore.balanced === true
+            );
+
+
+            /*
+             * ========================================================
+             * 4. AÇÃO MATEMÁTICA
+             * ========================================================
+             *
+             * Retirar 4 dos dois lados.
+             */
+
+            const resultadoRegra =
+                EquivalenceRules.subtractFromBothSides(
+                    equation,
+                    4
+                );
+
+
+            testar(
+                "A regra de subtração retornou um resultado",
+                resultadoRegra !== null &&
+                resultadoRegra !== undefined
+            );
+
+
+            /*
+             * ========================================================
+             * 5. VALIDAR O CONTRATO DA REGRA
+             * ========================================================
+             */
+
+            testar(
+                "A regra aplicada é SUBTRACT_BOTH_SIDES",
+                resultadoRegra &&
+                resultadoRegra.rule === "SUBTRACT_BOTH_SIDES"
+            );
+
+
+            testar(
+                "A quantidade da transformação é 4",
+                resultadoRegra &&
+                resultadoRegra.amount === 4
+            );
+
+
+            testar(
+                "A transformação declara equivalência preservada",
+                resultadoRegra &&
+                resultadoRegra.equivalent === true
+            );
+
+
+            /*
+             * ========================================================
+             * 6. RECUPERAR A EQUAÇÃO RESULTANTE
+             * ========================================================
+             *
+             * O contrato esperado da regra é:
+             *
+             * resultadoRegra.equation
+             *
+             * Mantemos uma verificação explícita para que,
+             * se o contrato estiver diferente, o teste mostre isso.
+             */
+
+            const transformedEquation =
+                resultadoRegra &&
+                resultadoRegra.equation;
+
+
+            testar(
+                "A regra retornou uma nova equação",
+                transformedEquation !== null &&
+                transformedEquation !== undefined
+            );
+
+
+            testar(
+                "A equação transformada é um EquationModel",
+                transformedEquation instanceof EquationModel
+            );
+
+
+            /*
+             * ========================================================
+             * 7. SOLUÇÃO DA EQUAÇÃO TRANSFORMADA
+             * ========================================================
+             */
+
+            let transformedSolution = null;
+
+
+            if (transformedEquation) {
+
+                transformedSolution =
+                    transformedEquation.getSolution();
+
+            }
+
+
+            testar(
+                "A equação transformada mantém a solução 5",
+                transformedSolution &&
+                transformedSolution.value === 5
+            );
+
+
+            /*
+             * ========================================================
+             * 8. EQUIVALÊNCIA MATEMÁTICA
+             * ========================================================
+             */
+
+            testar(
+                "A equação original e a transformada possuem a mesma solução",
+                originalSolution &&
+                transformedSolution &&
+                originalSolution.value ===
+                transformedSolution.value
+            );
+
+
+            /*
+             * ========================================================
+             * 9. REGISTRO DA TRANSFORMAÇÃO
+             * ========================================================
+             */
+
+            const transformation =
+                EquationTransformation.fromRuleResult(
+                    equation,
+                    resultadoRegra
+                );
+
+
+            testar(
+                "A transformação foi criada",
+                transformation instanceof EquationTransformation
+            );
+
+
+            /*
+             * ========================================================
+             * 10. ESTADO ANTES
+             * ========================================================
+             */
+
+            testar(
+                "A transformação registra a equação anterior",
+                transformation.before instanceof EquationModel
+            );
+
+
+            /*
+             * ========================================================
+             * 11. ESTADO DEPOIS
+             * ========================================================
+             */
+
+            testar(
+                "A transformação registra a equação posterior",
+                transformation.after instanceof EquationModel
+            );
+
+
+            /*
+             * ========================================================
+             * 12. REGRA REGISTRADA
+             * ========================================================
+             */
+
+            testar(
+                "A transformação registra SUBTRACT_BOTH_SIDES",
+                transformation.rule === "SUBTRACT_BOTH_SIDES"
+            );
+
+
+            /*
+             * ========================================================
+             * 13. AÇÃO REGISTRADA
+             * ========================================================
+             */
+
+            testar(
+                "A transformação registra a ação matemática",
+                transformation.action &&
+                transformation.action.type ===
+                "SUBTRACT_BOTH_SIDES"
+            );
+
+
+            /*
+             * ========================================================
+             * 14. QUANTIDADE REGISTRADA
+             * ========================================================
+             */
+
+            testar(
+                "A transformação registra a quantidade 4",
+                transformation.action &&
+                transformation.action.amount === 4
+            );
+
+
+            /*
+             * ========================================================
+             * 15. BALANÇA DEPOIS DA TRANSFORMAÇÃO
+             * ========================================================
+             */
+
+            let balanceAfter = null;
+            let evaluationAfter = null;
+
+
+            if (transformedEquation) {
+
+                balanceAfter =
+                    BalanceModel.fromEquation(
+                        transformedEquation
+                    );
+
+                evaluationAfter =
+                    balanceAfter.evaluate(5);
+
+            }
+
+
+            testar(
+                "A balança transformada foi criada",
+                balanceAfter instanceof BalanceModel
+            );
+
+
+            testar(
+                "Para x = 5, o lado esquerdo transformado vale 10",
+                evaluationAfter &&
+                evaluationAfter.left === 10
+            );
+
+
+            testar(
+                "Para x = 5, o lado direito transformado vale 10",
+                evaluationAfter &&
+                evaluationAfter.right === 10
+            );
+
+
+            testar(
+                "Para x = 5, a balança transformada continua equilibrada",
+                evaluationAfter &&
+                evaluationAfter.balanced === true
+            );
+
+
+            /*
+             * ========================================================
+             * 16. INDEPENDÊNCIA DOS ESTADOS
+             * ========================================================
+             */
+
+            testar(
+                "A equação original continua com solução 5",
+                equation.getSolution().value === 5
+            );
+
+
+            testar(
+                "A equação transformada é uma instância independente",
+                transformedEquation !== equation
+            );
+
+
+            testar(
+                "A equação anterior registrada é independente",
+                transformation.before !== equation
+            );
+
+
+            testar(
+                "A equação posterior registrada é independente",
+                transformation.after !== transformedEquation
+            );
+
+
+            /*
+             * ========================================================
+             * RESULTADOS
+             * ======================================================== */
+
+            document.getElementById("resultado").textContent =
+                resultados.join("\n");
+
+
+        } catch (erro) {
+
+
+            /*
+             * ========================================================
+             * ERRO CONTROLADO
+             * ========================================================
+             *
+             * Em vez de deixar a página vazia,
+             * mostramos exatamente o problema.
+             */
+
+            document.getElementById("resultado").innerHTML =
+
+                '<div class="erro-sistema">' +
+
+                '❌ O teste foi interrompido por um erro.<br><br>' +
+
+                '<strong>' +
+                (erro.name || "Erro") +
+                '</strong><br>' +
+
+                (erro.message || erro) +
+
+                '</div>';
+
+
+            console.error(
+                "Erro no teste integrado:",
+                erro
+            );
+
+        }
+
+    </script>
+
+</body>
+</html>

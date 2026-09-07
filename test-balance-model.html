@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Teste — BalanceModel</title>
+</head>
+<body>
+
+<h1>Teste do BalanceModel</h1>
+
+<pre id="resultado"></pre>
+
+<script type="module">
+
+import { EquationModel }
+    from "./src/math/algebra/EquationModel.js";
+
+import { BalanceModel }
+    from "./src/representations/balance/BalanceModel.js";
+
+const resultados = [];
+
+function testar(nome, condicao) {
+
+    resultados.push(
+        `${condicao ? "✅" : "❌"} ${nome}`
+    );
+}
+
+/*
+ * EQUAÇÃO
+ *
+ * x + 3 = 8
+ */
+
+const equation = EquationModel.from({
+
+    left: [
+        { type: "x", coefficient: 1 },
+        { type: "constant", value: 3 }
+    ],
+
+    right: [
+        { type: "constant", value: 8 }
+    ]
+
+});
+
+/*
+ * CRIA A BALANÇA
+ */
+
+const balance =
+    BalanceModel.fromEquation(equation);
+
+/*
+ * TESTE 1
+ */
+
+testar(
+    "A balança possui 1 elemento x no lado esquerdo",
+    balance.left.some(
+        item =>
+            item.type === "x" &&
+            item.quantity === 1
+    )
+);
+
+/*
+ * TESTE 2
+ */
+
+testar(
+    "A balança possui 3 unidades no lado esquerdo",
+    balance.left.some(
+        item =>
+            item.type === "unit" &&
+            item.quantity === 3
+    )
+);
+
+/*
+ * TESTE 3
+ */
+
+testar(
+    "A balança possui 8 unidades no lado direito",
+    balance.right.some(
+        item =>
+            item.type === "unit" &&
+            item.quantity === 8
+    )
+);
+
+/*
+ * TESTE 4
+ *
+ * x = 5
+ */
+
+const avaliacao =
+    balance.evaluate(5);
+
+testar(
+    "Para x = 5, o lado esquerdo vale 8",
+    avaliacao.left === 8
+);
+
+testar(
+    "Para x = 5, o lado direito vale 8",
+    avaliacao.right === 8
+);
+
+testar(
+    "Para x = 5, a balança está equilibrada",
+    avaliacao.balanced === true
+);
+
+/*
+ * TESTE 5
+ *
+ * Remove 3 unidades da esquerda.
+ */
+
+const removido =
+    balance.remove(
+        "LEFT",
+        "unit",
+        3
+    );
+
+testar(
+    "Foi possível remover 3 unidades da esquerda",
+    removido === true
+);
+
+testar(
+    "Depois da remoção, não existem unidades no lado esquerdo",
+    !balance.left.some(
+        item => item.type === "unit"
+    )
+);
+
+/*
+ * TESTE 6
+ *
+ * A balança deve continuar podendo
+ * ser avaliada.
+ */
+
+const avaliacaoDepois =
+    balance.evaluate(5);
+
+testar(
+    "Depois da remoção, o lado esquerdo vale 5",
+    avaliacaoDepois.left === 5
+);
+
+testar(
+    "Depois da remoção, o lado direito continua valendo 8",
+    avaliacaoDepois.right === 8
+);
+
+testar(
+    "Depois da remoção, a balança está desequilibrada",
+    avaliacaoDepois.balanced === false
+);
+
+/*
+ * TESTE 7
+ *
+ * Adiciona novamente 3 unidades.
+ */
+
+balance.add(
+    "LEFT",
+    "unit",
+    3
+);
+
+testar(
+    "Foi possível adicionar novamente 3 unidades",
+    balance.left.some(
+        item =>
+            item.type === "unit" &&
+            item.quantity === 3
+    )
+);
+
+testar(
+    "Após restaurar as unidades, a balança volta ao equilíbrio",
+    balance.isBalanced(5) === true
+);
+
+/*
+ * TESTE 8
+ *
+ * Clone independente.
+ */
+
+const clone =
+    balance.clone();
+
+testar(
+    "O clone é independente da balança original",
+    clone !== balance
+);
+
+/*
+ * TESTE 9
+ */
+
+testar(
+    "O clone possui o mesmo estado matemático",
+    JSON.stringify(clone.toJSON())
+    === JSON.stringify(balance.toJSON())
+);
+
+
+// --------------------------------------------------
+// Teste: x - 3 = 5
+// --------------------------------------------------
+
+const equationNegative = EquationModel.from({
+
+    left: [
+        { type: "x", coefficient: 1 },
+        { type: "constant", value: -3 }
+    ],
+
+    right: [
+        { type: "constant", value: 5 }
+    ]
+
+});
+
+const balanceNegative =
+    BalanceModel.fromEquation(equationNegative);
+
+
+/*
+ * TESTE 10
+ *
+ * A balança deve preservar
+ * o sinal negativo da constante.
+ */
+
+testar(
+    "A balança registra -3 como unidade negativa",
+    balanceNegative.left.some(
+        item =>
+            item.type === "unit" &&
+            item.quantity === 3 &&
+            item.sign === -1
+    )
+);
+
+
+/*
+ * TESTE 11
+ *
+ * x = 8
+ *
+ * 8 - 3 = 5
+ */
+
+testar(
+    "Para x = 8, o lado esquerdo vale 5",
+    balanceNegative.evaluateSide("LEFT", 8) === 5
+);
+
+
+/*
+ * TESTE 12
+ */
+
+testar(
+    "Para x = 8, o lado direito vale 5",
+    balanceNegative.evaluateSide("RIGHT", 8) === 5
+);
+
+
+/*
+ * TESTE 13
+ */
+
+testar(
+    "Para x = 8, a balança está equilibrada",
+    balanceNegative.isBalanced(8) === true
+);
+
+
+/*
+ * EXIBE TODOS OS RESULTADOS
+ */
+
+
+
+// --------------------------------------------------
+// Teste: 2x + 4 = 14
+// --------------------------------------------------
+
+const equationTwoX = EquationModel.from({
+
+    left: [
+        { type: "x", coefficient: 2 },
+        { type: "constant", value: 4 }
+    ],
+
+    right: [
+        { type: "constant", value: 14 }
+    ]
+
+});
+
+const balanceTwoX =
+    BalanceModel.fromEquation(equationTwoX);
+
+
+/*
+ * TESTE 20
+ */
+
+testar(
+    "A balança possui 2 elementos x no lado esquerdo",
+    balanceTwoX.left.some(
+        item =>
+            item.type === "x" &&
+            item.quantity === 2
+    )
+);
+
+
+/*
+ * TESTE 21
+ */
+
+testar(
+    "A balança possui 4 unidades positivas no lado esquerdo",
+    balanceTwoX.left.some(
+        item =>
+            item.type === "unit" &&
+            item.quantity === 4 &&
+            item.sign === 1
+    )
+);
+
+
+/*
+ * TESTE 22
+ */
+
+testar(
+    "A balança possui 14 unidades no lado direito",
+    balanceTwoX.right.some(
+        item =>
+            item.type === "unit" &&
+            item.quantity === 14 &&
+            item.sign === 1
+    )
+);
+
+
+/*
+ * TESTE 23
+ *
+ * Para x = 5:
+ *
+ * 2(5) + 4 = 14
+ */
+
+const avaliacaoTwoX =
+    balanceTwoX.evaluate(5);
+
+testar(
+    "Para x = 5, o lado esquerdo vale 14",
+    avaliacaoTwoX.left === 14
+);
+
+
+/*
+ * TESTE 24
+ */
+
+testar(
+    "Para x = 5, o lado direito vale 14",
+    avaliacaoTwoX.right === 14
+);
+
+
+/*
+ * TESTE 25
+ */
+
+testar(
+    "Para x = 5, a balança está equilibrada",
+    avaliacaoTwoX.balanced === true
+);
+
+/*
+ * EXIBE TODOS OS RESULTADOS
+ */
+
+document.getElementById("resultado").textContent =
+    resultados.join("\n");
+
+</script>
+
+</body>
+</html>

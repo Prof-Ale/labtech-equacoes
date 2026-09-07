@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+
+    <title>Teste - Simplificação Algébrica</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f2742;
+            color: white;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #d9a441;
+        }
+
+        #resultado {
+            white-space: pre-line;
+            font-size: 18px;
+            line-height: 1.8;
+            background: #17395f;
+            padding: 20px;
+            border-radius: 12px;
+            min-height: 100px;
+        }
+
+        .erro-sistema {
+            color: #ff8a8a;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Teste - Simplificação Algébrica</h1>
+
+    <div id="resultado"></div>
+
+    <script type="module">
+
+        import { EquationModel }
+            from "./EquationModel.js";
+
+        import { EquivalenceRules }
+            from "./EquivalenceRules.js";
+
+        /*
+         * O AlgebraicSimplifier ainda será criado.
+         *
+         * Neste momento estamos definindo seu contrato
+         * por meio dos testes.
+         */
+        import { AlgebraicSimplifier }
+            from "./AlgebraicSimplifier.js";
+
+
+        const resultados = [];
+
+
+        function testar(nome, condicao) {
+
+            if (condicao) {
+
+                resultados.push(
+                    "✅ " + nome
+                );
+
+            } else {
+
+                resultados.push(
+                    "❌ " + nome
+                );
+
+            }
+
+        }
+
+
+        try {
+
+
+            /*
+             * ========================================================
+             * TESTE 1
+             *
+             * 2x + 4 = 14
+             *
+             * Depois:
+             *
+             * -4 dos dois lados
+             *
+             * 2x + 4 - 4 = 14 - 4
+             *
+             * Simplificação esperada:
+             *
+             * 2x = 10
+             * ========================================================
+             */
+
+            const equation =
+                new EquationModel({
+
+                    left: [
+                        {
+                            type: "x",
+                            coefficient: 2
+                        },
+                        {
+                            type: "constant",
+                            value: 4
+                        }
+                    ],
+
+                    right: [
+                        {
+                            type: "constant",
+                            value: 14
+                        }
+                    ]
+
+                });
+
+
+            const transformed =
+                EquivalenceRules.subtractFromBothSides(
+                    equation,
+                    4
+                );
+
+
+            const simplified =
+                AlgebraicSimplifier.simplifyEquation(
+                    transformed.equation
+                );
+
+
+            /*
+             * ========================================================
+             * TESTE 1 — TIPO
+             * ========================================================
+             */
+
+            testar(
+                "A simplificação retorna um EquationModel",
+                simplified instanceof EquationModel
+            );
+
+
+            /*
+             * ========================================================
+             * TESTE 2 — ESTRUTURA DO LADO ESQUERDO
+             * ========================================================
+             */
+
+            testar(
+                "O lado esquerdo possui um termo x",
+                simplified.left.some(
+                    term =>
+                        term.type === "x" &&
+                        term.coefficient === 2
+                )
+            );
+
+
+            testar(
+                "O lado esquerdo não possui mais constante",
+                !simplified.left.some(
+                    term =>
+                        term.type === "constant"
+                )
+            );
+
+
+            /*
+             * ========================================================
+             * TESTE 3 — LADO DIREITO
+             * ========================================================
+             */
+
+            testar(
+                "O lado direito possui a constante 10",
+                simplified.right.some(
+                    term =>
+                        term.type === "constant" &&
+                        term.value === 10
+                )
+            );
+
+
+            /*
+             * ========================================================
+             * TESTE 4 — SOLUÇÃO
+             * ========================================================
+             */
+
+            const solution =
+                simplified.getSolution();
+
+
+            testar(
+                "A equação simplificada continua tendo solução 5",
+                solution.value === 5
+            );
+
+
+            /*
+             * ========================================================
+             * TESTE 5 — EQUIVALÊNCIA
+             * ========================================================
+             */
+
+            testar(
+                "A simplificação preserva a solução da equação",
+                equation.getSolution().value ===
+                simplified.getSolution().value
+            );
+
+
+            /*
+             * ========================================================
+             * TESTE 6
+             *
+             * x + 3 - 3 = 8 - 3
+             *
+             * Esperado:
+             *
+             * x = 5
+             * ========================================================
+             */
+
+            const equationTwo =
+                new EquationModel({
+
+                    left: [
+                        {
+                            type: "x",
+                            coefficient: 1
+                        },
+                        {
+                            type: "constant",
+                            value: 3
+                        },
+                        {
+                            type: "constant",
+                            value: -3
+                        }
+                    ],
+
+                    right: [
+                        {
+                            type: "constant",
+                            value: 8
+                        },
+                        {
+                            type: "constant",
+                            value: -3
+                        }
+                    ]
+
+                });
+
+
+            const simplifiedTwo =
+                AlgebraicSimplifier.simplifyEquation(
+                    equationTwo
+                );
+
+
+            testar(
+                "x + 3 - 3 = 8 - 3 simplifica para x = 5",
+                simplifiedTwo.getSolution().value === 5
+            );
+
+
+            testar(
+                "O lado esquerdo de x = 5 possui apenas x",
+                simplifiedTwo.left.length === 1 &&
+                simplifiedTwo.left[0].type === "x" &&
+                simplifiedTwo.left[0].coefficient === 1
+            );
+
+
+            testar(
+                "O lado direito possui apenas 5",
+                simplifiedTwo.right.length === 1 &&
+                simplifiedTwo.right[0].type === "constant" &&
+                simplifiedTwo.right[0].value === 5
+            );
+
+
+            /*
+             * ========================================================
+             * TESTE 7
+             *
+             * 2x + 4 - 4
+             *
+             * Deve eliminar constantes que resultam em zero.
+             * ========================================================
+             */
+
+            const simplifiedLeft =
+                AlgebraicSimplifier.simplifySide([
+                    {
+                        type: "x",
+                        coefficient: 2
+                    },
+                    {
+                        type: "constant",
+                        value: 4
+                    },
+                    {
+                        type: "constant",
+                        value: -4
+                    }
+                ]);
+
+
+            testar(
+                "Constantes opostas se anulam",
+                !simplifiedLeft.some(
+                    term =>
+                        term.type === "constant"
+                )
+            );
+
+
+            testar(
+                "O termo 2x permanece após a simplificação",
+                simplifiedLeft.length === 1 &&
+                simplifiedLeft[0].type === "x" &&
+                simplifiedLeft[0].coefficient === 2
+            );
+
+
+            /*
+             * ========================================================
+             * TESTE 8
+             *
+             * Termos x semelhantes devem ser combinados.
+             *
+             * 2x + 3x = 5x
+             * ========================================================
+             */
+
+            const combinedX =
+                AlgebraicSimplifier.simplifySide([
+                    {
+                        type: "x",
+                        coefficient: 2
+                    },
+                    {
+                        type: "x",
+                        coefficient: 3
+                    }
+                ]);
+
+
+            testar(
+                "Termos semelhantes em x são combinados",
+                combinedX.length === 1 &&
+                combinedX[0].type === "x" &&
+                combinedX[0].coefficient === 5
+            );
+
+
+            /*
+             * ========================================================
+             * TESTE 9
+             *
+             * Coeficientes que resultam em zero desaparecem.
+             *
+             * 3x - 3x = 0
+             * ========================================================
+             */
+
+            const zeroX =
+                AlgebraicSimplifier.simplifySide([
+                    {
+                        type: "x",
+                        coefficient: 3
+                    },
+                    {
+                        type: "x",
+                        coefficient: -3
+                    }
+                ]);
+
+
+            testar(
+                "Termos x opostos se anulam",
+                zeroX.length === 0
+            );
+
+
+            /*
+             * ========================================================
+             * TESTE 10
+             *
+             * Constantes semelhantes são combinadas.
+             *
+             * 7 - 2 = 5
+             * ========================================================
+             */
+
+            const combinedConstants =
+                AlgebraicSimplifier.simplifySide([
+                    {
+                        type: "constant",
+                        value: 7
+                    },
+                    {
+                        type: "constant",
+                        value: -2
+                    }
+                ]);
+
+
+            testar(
+                "Constantes são combinadas",
+                combinedConstants.length === 1 &&
+                combinedConstants[0].type === "constant" &&
+                combinedConstants[0].value === 5
+            );
+
+
+            /*
+             * ========================================================
+             * RESULTADOS
+             * ========================================================
+             */
+
+            document.getElementById("resultado").textContent =
+                resultados.join("\n");
+
+
+        } catch (erro) {
+
+            document.getElementById("resultado").innerHTML =
+
+                '<div class="erro-sistema">' +
+
+                '❌ O teste foi interrompido por um erro.<br><br>' +
+
+                '<strong>' +
+                (erro.name || "Erro") +
+                '</strong><br>' +
+
+                (erro.message || erro) +
+
+                '</div>';
+
+
+            console.error(
+                "Erro no teste de simplificação:",
+                erro
+            );
+
+        }
+
+    </script>
+
+</body>
+</html>
