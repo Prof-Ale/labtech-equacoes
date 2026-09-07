@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Teste — MissionState</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f2433;
+            color: white;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #d9a441;
+        }
+
+        #resultado {
+            white-space: pre-line;
+            font-family: monospace;
+            font-size: 16px;
+            line-height: 1.7;
+        }
+
+        .ok {
+            color: #72d572;
+        }
+
+        .erro {
+            color: #ff7777;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>MissionState — Testes</h1>
+
+<div id="resultado"></div>
+
+<script type="module">
+
+import { EquationModel }
+    from "../math/algebra/EquationModel.js";
+
+import { EquivalenceRules }
+    from "../math/algebra/EquivalenceRules.js";
+
+import { EquationTransformation }
+    from "../math/algebra/EquationTransformation.js";
+
+import { MissionState }
+    from "./MissionState.js";
+
+
+const resultados = [];
+
+
+function testar(nome, condicao) {
+
+    if (condicao) {
+
+        resultados.push("🟢 " + nome);
+
+    } else {
+
+        resultados.push("🔴 " + nome);
+
+    }
+}
+
+
+/*
+==================================================
+1. CRIAÇÃO DA EQUAÇÃO
+==================================================
+*/
+
+const equacao =
+    EquationModel.from({
+        left: [
+            { type: "x", coefficient: 2 },
+            { type: "constant", value: 4 }
+        ],
+        right: [
+            { type: "constant", value: 14 }
+        ]
+    });
+
+
+/*
+==================================================
+2. CRIAÇÃO DA MISSÃO
+==================================================
+*/
+
+const missao =
+    new MissionState({
+        missionId: "missao-equilibrio-01",
+        initialEquation: equacao
+    });
+
+
+testar(
+    "MissionState foi criado",
+    missao instanceof MissionState
+);
+
+
+testar(
+    "ID da missão registrado",
+    missao.missionId === "missao-equilibrio-01"
+);
+
+
+testar(
+    "Equação inicial registrada",
+    missao.initialEquation.toString() === "2x + 4 = 14"
+);
+
+
+testar(
+    "Equação atual começa igual à inicial",
+    missao.currentEquation.toString() === "2x + 4 = 14"
+);
+
+
+/*
+==================================================
+3. ESTADO INICIAL
+==================================================
+*/
+
+testar(
+    "Representação inicial é concreta",
+    missao.currentRepresentation === "concrete"
+);
+
+
+testar(
+    "Etapa inicial é exploration",
+    missao.currentStage === "exploration"
+);
+
+
+testar(
+    "Mediação inicial é nível 0",
+    missao.mediationLevel === 0
+);
+
+
+testar(
+    "Estratégia inicial é null",
+    missao.strategy === null
+);
+
+
+testar(
+    "Missão começa não concluída",
+    missao.completed === false
+);
+
+
+/*
+==================================================
+4. REGISTRO DE AÇÃO
+==================================================
+*/
+
+missao.recordAction({
+
+    type: "subtract",
+
+    amount: 4,
+
+    sides: [
+        "left",
+        "right"
+    ]
+
+});
+
+
+testar(
+    "Ação foi registrada",
+    missao.actions.length === 1
+);
+
+
+testar(
+    "Tipo da ação foi preservado",
+    missao.actions[0].type === "subtract"
+);
+
+
+testar(
+    "Quantidade da ação foi preservada",
+    missao.actions[0].amount === 4
+);
+
+
+testar(
+    "Lados da ação foram registrados",
+    missao.actions[0].sides.length === 2
+);
+
+
+testar(
+    "Ação recebeu timestamp",
+    typeof missao.actions[0].timestamp === "number"
+);
+
+
+/*
+==================================================
+5. TRANSFORMAÇÃO MATEMÁTICA
+==================================================
+*/
+
+const resultadoRegra =
+    EquivalenceRules.subtractFromBothSides(
+        equacao,
+        4
+    );
+
+
+const transformacao =
+    EquationTransformation.fromRuleResult(
+        equacao,
+        resultadoRegra
+    );
+
+
+missao.recordTransformation(
+    transformacao
+);
+
+
+testar(
+    "Transformação foi registrada",
+    missao.transformations.length === 1
+);
+
+
+testar(
+    "Transformação registrada é EquationTransformation",
+    missao.transformations[0] instanceof EquationTransformation
+);
+
+
+testar(
+    "Equação atual foi atualizada",
+    missao.currentEquation.toString() ===
+        "2x + 4 - 4 = 14 - 4"
+);
+
+
+/*
+==================================================
+6. REPRESENTAÇÃO
+==================================================
+*/
+
+missao.setRepresentation("symbolic");
+
+
+testar(
+    "Representação pode ser alterada",
+    missao.currentRepresentation === "symbolic"
+);
+
+
+/*
+==================================================
+7. ETAPA
+==================================================
+*/
+
+missao.setStage("transformation");
+
+
+testar(
+    "Etapa pode ser alterada",
+    missao.currentStage === "transformation"
+);
+
+
+/*
+==================================================
+8. ESTRATÉGIA
+==================================================
+*/
+
+missao.setStrategy(
+    "subtract_both_sides"
+);
+
+
+testar(
+    "Estratégia pode ser registrada",
+    missao.strategy === "subtract_both_sides"
+);
+
+
+/*
+==================================================
+9. MEDIAÇÃO
+==================================================
+*/
+
+missao.setMediationLevel(2);
+
+
+testar(
+    "Nível de mediação pode ser registrado",
+    missao.mediationLevel === 2
+);
+
+
+/*
+==================================================
+10. CONCLUSÃO
+==================================================
+*/
+
+missao.complete();
+
+
+testar(
+    "Missão pode ser concluída",
+    missao.completed === true
+);
+
+
+/*
+==================================================
+11. CLONE
+==================================================
+*/
+
+const clone =
+    missao.clone();
+
+
+testar(
+    "Clone foi criado",
+    clone instanceof MissionState
+);
+
+
+testar(
+    "Clone preserva o ID",
+    clone.missionId === missao.missionId
+);
+
+
+testar(
+    "Clone preserva a equação atual",
+    clone.currentEquation.toString() ===
+        missao.currentEquation.toString()
+);
+
+
+testar(
+    "Clone preserva as ações",
+    clone.actions.length ===
+        missao.actions.length
+);
+
+
+testar(
+    "Clone preserva as transformações",
+    clone.transformations.length ===
+        missao.transformations.length
+);
+
+
+/*
+==================================================
+12. INDEPENDÊNCIA DO CLONE
+==================================================
+*/
+
+clone.setRepresentation("visual");
+
+
+testar(
+    "Clone é independente da missão original",
+    missao.currentRepresentation === "symbolic"
+);
+
+
+clone.recordAction({
+
+    type: "add",
+
+    amount: 1,
+
+    sides: [
+        "left",
+        "right"
+    ]
+
+});
+
+
+testar(
+    "Ações do clone não alteram a missão original",
+    clone.actions.length === 2 &&
+    missao.actions.length === 1
+);
+
+
+/*
+==================================================
+13. SERIALIZAÇÃO
+==================================================
+*/
+
+const json =
+    missao.toJSON();
+
+
+testar(
+    "toJSON retorna objeto",
+    typeof json === "object"
+);
+
+
+testar(
+    "JSON contém missionId",
+    json.missionId ===
+        "missao-equilibrio-01"
+);
+
+
+testar(
+    "JSON contém equação inicial",
+    json.initialEquation ===
+        "2x + 4 = 14"
+);
+
+
+testar(
+    "JSON contém equação atual",
+    json.currentEquation ===
+        "2x + 4 - 4 = 14 - 4"
+);
+
+
+testar(
+    "JSON contém ações",
+    Array.isArray(json.actions)
+);
+
+
+testar(
+    "JSON contém transformações",
+    Array.isArray(json.transformations)
+);
+
+
+testar(
+    "JSON contém representação atual",
+    json.currentRepresentation ===
+        "symbolic"
+);
+
+
+testar(
+    "JSON contém estratégia",
+    json.strategy ===
+        "subtract_both_sides"
+);
+
+
+testar(
+    "JSON contém nível de mediação",
+    json.mediationLevel === 2
+);
+
+
+testar(
+    "JSON registra missão concluída",
+    json.completed === true
+);
+
+
+/*
+==================================================
+RESULTADO
+==================================================
+*/
+
+const total =
+    resultados.length;
+
+const verdes =
+    resultados.filter(
+        item => item.startsWith("🟢")
+    ).length;
+
+const vermelhos =
+    resultados.filter(
+        item => item.startsWith("🔴")
+    ).length;
+
+
+resultados.unshift(
+    `RESULTADO: ${verdes}/${total} testes verdes`
+);
+
+
+resultados.push("");
+resultados.push(
+    vermelhos === 0
+        ? "🎯 TODOS OS TESTES PASSARAM."
+        : `⚠️ ${vermelhos} teste(s) precisam de revisão.`
+);
+
+
+document.getElementById(
+    "resultado"
+).textContent =
+    resultados.join("\n");
+
+</script>
+
+</body>
+</html>

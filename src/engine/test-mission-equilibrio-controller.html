@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+
+    <title>Teste — MissionEquilibrioController</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f2433;
+            color: white;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #d9a441;
+        }
+
+        #resultado {
+            white-space: pre-line;
+            font-family: monospace;
+            font-size: 16px;
+            line-height: 1.7;
+        }
+
+        .resumo {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #d9a441;
+            border-radius: 8px;
+            background: #102b3d;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>MissionEquilibrioController — Testes</h1>
+
+<div id="resultado"></div>
+
+<script type="module">
+
+
+/*
+==================================================
+IMPORTAÇÕES
+==================================================
+*/
+
+import { EquationModel }
+    from "../math/algebra/EquationModel.js";
+
+import { EquationTransformation }
+    from "../math/algebra/EquationTransformation.js";
+
+import { MissionEquilibrioController }
+    from "./MissionEquilibrioController.js";
+
+
+/*
+==================================================
+INFRAESTRUTURA DE TESTE
+==================================================
+*/
+
+const resultados = [];
+
+
+function testar(nome, condicao) {
+
+    if (condicao) {
+
+        resultados.push("🟢 " + nome);
+
+    } else {
+
+        resultados.push("🔴 " + nome);
+
+    }
+
+}
+
+
+/*
+==================================================
+1. EQUAÇÃO INICIAL
+==================================================
+*/
+
+const equacao =
+    EquationModel.from({
+
+        left: [
+
+            {
+                type: "x",
+                coefficient: 2
+            },
+
+            {
+                type: "constant",
+                value: 4
+            }
+
+        ],
+
+        right: [
+
+            {
+                type: "constant",
+                value: 14
+            }
+
+        ]
+
+    });
+
+
+/*
+==================================================
+2. CRIAÇÃO DO CONTROLADOR
+==================================================
+*/
+
+const controller =
+    new MissionEquilibrioController({
+
+        missionId:
+            "missao-equilibrio-01",
+
+        initialEquation:
+            equacao
+
+    });
+
+
+testar(
+    "Controlador foi criado",
+    controller instanceof MissionEquilibrioController
+);
+
+
+testar(
+    "Estado da missão foi criado",
+    controller.state !== null
+);
+
+
+testar(
+    "Equação inicial é 2x + 4 = 14",
+    controller
+        .getCurrentEquation()
+        .toString() === "2x + 4 = 14"
+);
+
+
+/*
+==================================================
+3. REPRESENTAÇÃO INICIAL
+==================================================
+*/
+
+const balanceInicial =
+    controller.getBalance();
+
+
+testar(
+    "Balança inicial foi criada",
+    balanceInicial !== null
+);
+
+
+testar(
+    "Balança inicial representa 2x",
+    balanceInicial.left
+        .filter(
+            item =>
+                item.type === "x"
+        )
+        .reduce(
+            (total, item) =>
+                total + item.quantity,
+            0
+        ) === 2
+);
+
+
+testar(
+    "Balança inicial possui 4 unidades à esquerda",
+    balanceInicial.left
+        .filter(
+            item =>
+                item.type === "unit"
+        )
+        .reduce(
+            (total, item) =>
+                total + item.quantity,
+            0
+        ) === 4
+);
+
+
+testar(
+    "Balança inicial possui 14 unidades à direita",
+    balanceInicial.right
+        .filter(
+            item =>
+                item.type === "unit"
+        )
+        .reduce(
+            (total, item) =>
+                total + item.quantity,
+            0
+        ) === 14
+);
+
+
+/*
+==================================================
+4. SOLUÇÃO INICIAL
+==================================================
+*/
+
+const solucaoInicial =
+    controller.getSolution();
+
+
+testar(
+    "Solução inicial é única",
+    solucaoInicial.type === "UNIQUE"
+);
+
+
+testar(
+    "Solução inicial é x = 5",
+    solucaoInicial.value === 5
+);
+
+
+testar(
+    "Valor 5 satisfaz a equação inicial",
+    controller.checkSolution(5) === true
+);
+
+
+testar(
+    "Valor 4 não satisfaz a equação inicial",
+    controller.checkSolution(4) === false
+);
+
+
+/*
+==================================================
+5. EXECUÇÃO SEMÂNTICA DA AÇÃO
+==================================================
+
+A interface do futuro MathLab não deverá
+precisar conhecer EquivalenceRules.
+
+Ela envia uma intenção matemática:
+
+    retirar 4 dos dois lados
+
+O Controller interpreta essa ação.
+==================================================
+*/
+
+const resultado =
+    controller.executeAction({
+
+        type: "subtract",
+
+        amount: 4,
+
+        sides: [
+            "left",
+            "right"
+        ]
+
+    });
+
+
+/*
+==================================================
+6. RESULTADO DA AÇÃO
+==================================================
+*/
+
+testar(
+    "executeAction retornou resultado",
+    resultado !== null
+);
+
+
+testar(
+    "Ação retornada é subtract",
+    resultado.action.type === "subtract"
+);
+
+
+testar(
+    "Quantidade 4 foi preservada",
+    resultado.action.amount === 4
+);
+
+
+testar(
+    "Ação foi executada nos dois lados",
+    Array.isArray(resultado.action.sides) &&
+    resultado.action.sides.includes("left") &&
+    resultado.action.sides.includes("right")
+);
+
+
+testar(
+    "Ação é estruturalmente completa",
+    resultado.structurallyComplete === true
+);
+
+
+testar(
+    "Transformação foi retornada",
+    resultado.transformation !== null
+);
+
+
+testar(
+    "Transformação é EquationTransformation",
+    resultado.transformation
+        instanceof EquationTransformation
+);
+
+
+testar(
+    "Transformação é equivalente",
+    resultado.equivalent === true
+);
+
+
+testar(
+    "Regra utilizada é SUBTRACT_BOTH_SIDES",
+    resultado.rule ===
+        "SUBTRACT_BOTH_SIDES"
+);
+
+
+/*
+==================================================
+7. EQUAÇÃO APÓS TRANSFORMAÇÃO
+==================================================
+*/
+
+testar(
+    "Equação simplificada é 2x = 10",
+    resultado.equation.toString() ===
+        "2x = 10"
+);
+
+
+testar(
+    "Estado atual também é 2x = 10",
+    controller
+        .getCurrentEquation()
+        .toString() ===
+        "2x = 10"
+);
+
+
+/*
+==================================================
+8. SOLUÇÃO APÓS TRANSFORMAÇÃO
+==================================================
+*/
+
+const solucaoFinal =
+    controller.getSolution();
+
+
+testar(
+    "Solução final é única",
+    solucaoFinal.type === "UNIQUE"
+);
+
+
+testar(
+    "Solução final continua sendo 5",
+    solucaoFinal.value === 5
+);
+
+
+testar(
+    "5 satisfaz a equação transformada",
+    controller.checkSolution(5) === true
+);
+
+
+testar(
+    "4 não satisfaz a equação transformada",
+    controller.checkSolution(4) === false
+);
+
+
+/*
+==================================================
+9. BALANÇA APÓS TRANSFORMAÇÃO
+==================================================
+*/
+
+const balanceFinal =
+    controller.getBalance();
+
+
+testar(
+    "Balança foi atualizada",
+    balanceFinal !== null
+);
+
+
+testar(
+    "Balança final possui 2 elementos x",
+    balanceFinal.left
+        .filter(
+            item =>
+                item.type === "x"
+        )
+        .reduce(
+            (total, item) =>
+                total + item.quantity,
+            0
+        ) === 2
+);
+
+
+testar(
+    "Balança final possui 10 unidades à direita",
+    balanceFinal.right
+        .filter(
+            item =>
+                item.type === "unit"
+        )
+        .reduce(
+            (total, item) =>
+                total + item.quantity,
+            0
+        ) === 10
+);
+
+
+testar(
+    "Balança final possui zero unidades à esquerda",
+    balanceFinal.left
+        .filter(
+            item =>
+                item.type === "unit"
+        )
+        .reduce(
+            (total, item) =>
+                total + item.quantity,
+            0
+        ) === 0
+);
+
+
+/*
+==================================================
+10. INDEPENDÊNCIA DA EQUAÇÃO ORIGINAL
+==================================================
+*/
+
+testar(
+    "Equação original permaneceu intacta",
+    equacao.toString() ===
+        "2x + 4 = 14"
+);
+
+
+/*
+==================================================
+11. HISTÓRICO DA MISSÃO
+==================================================
+*/
+
+/*
+A grande correção arquitetural:
+
+Antes:
+
+    recordAction()
+    subtractFromBothSides()
+
+produzia duas ações.
+
+Agora:
+
+    executeAction()
+
+deve registrar somente a ação realmente executada.
+*/
+
+testar(
+    "Estado possui exatamente uma ação",
+    controller.state
+        .actions
+        .length === 1
+);
+
+
+testar(
+    "A ação registrada é subtract",
+    controller.state
+        .actions[0]
+        .type === "subtract"
+);
+
+
+testar(
+    "A ação registrada possui quantidade 4",
+    controller.state
+        .actions[0]
+        .amount === 4
+);
+
+
+testar(
+    "A ação registrada possui os dois lados",
+    controller.state
+        .actions[0]
+        .sides.includes("left") &&
+    controller.state
+        .actions[0]
+        .sides.includes("right")
+);
+
+
+testar(
+    "Estado possui uma transformação",
+    controller.state
+        .transformations
+        .length === 1
+);
+
+
+/*
+==================================================
+12. TRANSFORMAÇÃO REGISTRADA NO ESTADO
+==================================================
+*/
+
+const transformacaoEstado =
+    controller.state
+        .transformations[0];
+
+
+testar(
+    "Transformação registrada é EquationTransformation",
+    transformacaoEstado
+        instanceof EquationTransformation
+);
+
+
+testar(
+    "Transformação parte de 2x + 4 = 14",
+    transformacaoEstado
+        .before
+        .toString() ===
+        "2x + 4 = 14"
+);
+
+
+testar(
+    "Transformação termina em 2x = 10",
+    transformacaoEstado
+        .after
+        .toString() ===
+        "2x = 10"
+);
+
+
+testar(
+    "Transformação registra equivalência",
+    transformacaoEstado.equivalent === true
+);
+
+
+/*
+==================================================
+13. REPRESENTAÇÃO E MEDIAÇÃO
+==================================================
+*/
+
+controller.setRepresentation(
+    "symbolic"
+);
+
+
+controller.setStage(
+    "transformation"
+);
+
+
+controller.setStrategy(
+    "subtract_both_sides"
+);
+
+
+controller.setMediationLevel(
+    1
+);
+
+
+testar(
+    "Representação simbólica foi registrada",
+    controller.state.currentRepresentation ===
+        "symbolic"
+);
+
+
+testar(
+    "Etapa transformation foi registrada",
+    controller.state.currentStage ===
+        "transformation"
+);
+
+
+testar(
+    "Estratégia foi registrada",
+    controller.state.strategy ===
+        "subtract_both_sides"
+);
+
+
+testar(
+    "Mediação nível 1 foi registrada",
+    controller.state.mediationLevel === 1
+);
+
+
+/*
+==================================================
+14. CONCLUSÃO
+==================================================
+*/
+
+controller.complete();
+
+
+testar(
+    "Missão pode ser concluída",
+    controller.state.completed === true
+);
+
+
+/*
+==================================================
+15. SERIALIZAÇÃO
+==================================================
+*/
+
+const json =
+    controller.toJSON();
+
+
+testar(
+    "Controller possui serialização",
+    typeof json === "object"
+);
+
+
+testar(
+    "Serialização possui mission",
+    json.mission !== undefined
+);
+
+
+testar(
+    "Serialização possui balance",
+    json.balance !== undefined
+);
+
+
+testar(
+    "Serialização registra missão concluída",
+    json.mission.completed === true
+);
+
+
+testar(
+    "Serialização registra equação final",
+    json.mission.currentEquation ===
+        "2x = 10"
+);
+
+
+testar(
+    "Serialização registra uma ação",
+    json.mission.actions.length === 1
+);
+
+
+testar(
+    "Serialização registra uma transformação",
+    json.mission.transformations.length === 1
+);
+
+
+/*
+==================================================
+16. INTEGRIDADE DO FLUXO
+==================================================
+
+Este bloco verifica a cadeia conceitual:
+
+AÇÃO
+   ↓
+VALIDAÇÃO
+   ↓
+REGRA DE EQUIVALÊNCIA
+   ↓
+TRANSFORMAÇÃO
+   ↓
+SIMPLIFICAÇÃO
+   ↓
+NOVO ESTADO
+   ↓
+BALANÇA
+==================================================
+*/
+
+testar(
+    "Fluxo final mantém equivalência matemática",
+    resultado.equivalent === true
+);
+
+
+testar(
+    "Fluxo final preserva a solução x = 5",
+    controller.getSolution().value === 5
+);
+
+
+testar(
+    "Fluxo final mantém a balança equilibrada para x = 5",
+    controller.getBalance().isBalanced(5) === true
+);
+
+
+/*
+==================================================
+RESULTADO
+==================================================
+*/
+
+const total =
+    resultados.length;
+
+
+const verdes =
+    resultados.filter(
+        item =>
+            item.startsWith("🟢")
+    ).length;
+
+
+const vermelhos =
+    resultados.filter(
+        item =>
+            item.startsWith("🔴")
+    ).length;
+
+
+/*
+==================================================
+CABEÇALHO DO RESULTADO
+==================================================
+*/
+
+resultados.unshift(
+    `RESULTADO: ${verdes}/${total} testes verdes`
+);
+
+
+resultados.push("");
+
+
+resultados.push(
+    vermelhos === 0
+        ? "🎯 TODOS OS TESTES PASSARAM."
+        : `⚠️ ${vermelhos} teste(s) precisam de revisão.`
+);
+
+
+/*
+==================================================
+SAÍDA
+==================================================
+*/
+
+document.getElementById(
+    "resultado"
+).textContent =
+    resultados.join("\n");
+
+
+</script>
+
+</body>
+
+</html>

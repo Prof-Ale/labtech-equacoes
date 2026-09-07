@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+
+    <title>Teste — ActionValidator</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f2433;
+            color: white;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #d9a441;
+        }
+
+        #resultado {
+            white-space: pre-line;
+            font-family: monospace;
+            font-size: 16px;
+            line-height: 1.7;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>ActionValidator — Testes</h1>
+
+<div id="resultado"></div>
+
+<script type="module">
+
+import { ActionValidator }
+    from "./ActionValidator.js";
+
+
+const resultados = [];
+
+
+function testar(nome, condicao) {
+
+    resultados.push(
+        (condicao ? "🟢 " : "🔴 ") + nome
+    );
+}
+
+
+/*
+==================================================
+1. AÇÃO VÁLIDA NOS DOIS LADOS
+==================================================
+*/
+
+const acaoCompleta = {
+
+    type: "subtract",
+
+    amount: 4,
+
+    sides: [
+        "left",
+        "right"
+    ]
+
+};
+
+
+const resultadoCompleto =
+    ActionValidator.validate(
+        acaoCompleta
+    );
+
+
+testar(
+    "Ação completa é estruturalmente válida",
+    resultadoCompleto.valid === true
+);
+
+
+testar(
+    "Ação nos dois lados é reconhecida",
+    resultadoCompleto.structurallyComplete === true
+);
+
+
+testar(
+    "Resultado identifica os dois lados",
+    resultadoCompleto.result ===
+        "both_sides"
+);
+
+
+testar(
+    "Tipo da ação é preservado",
+    resultadoCompleto.action.type ===
+        "subtract"
+);
+
+
+testar(
+    "Quantidade é preservada",
+    resultadoCompleto.action.amount === 4
+);
+
+
+/*
+==================================================
+2. AÇÃO SOMENTE À ESQUERDA
+==================================================
+*/
+
+const acaoEsquerda = {
+
+    type: "subtract",
+
+    amount: 4,
+
+    sides: [
+        "left"
+    ]
+
+};
+
+
+const resultadoEsquerda =
+    ActionValidator.validate(
+        acaoEsquerda
+    );
+
+
+testar(
+    "Ação somente à esquerda é estruturalmente válida",
+    resultadoEsquerda.valid === true
+);
+
+
+testar(
+    "Ação somente à esquerda não é completa",
+    resultadoEsquerda.structurallyComplete === false
+);
+
+
+testar(
+    "Resultado identifica ação parcial",
+    resultadoEsquerda.result ===
+        "partial_side"
+);
+
+
+/*
+==================================================
+3. AÇÃO SOMENTE À DIREITA
+==================================================
+*/
+
+const acaoDireita = {
+
+    type: "subtract",
+
+    amount: 4,
+
+    sides: [
+        "right"
+    ]
+
+};
+
+
+const resultadoDireita =
+    ActionValidator.validate(
+        acaoDireita
+    );
+
+
+testar(
+    "Ação somente à direita é estruturalmente válida",
+    resultadoDireita.valid === true
+);
+
+
+testar(
+    "Ação somente à direita não é completa",
+    resultadoDireita.structurallyComplete === false
+);
+
+
+testar(
+    "Resultado identifica ação parcial",
+    resultadoDireita.result ===
+        "partial_side"
+);
+
+
+/*
+==================================================
+4. NORMALIZAÇÃO
+==================================================
+*/
+
+const acaoDuplicada = {
+
+    type: "add",
+
+    amount: 3,
+
+    sides: [
+        "left",
+        "right",
+        "left"
+    ]
+
+};
+
+
+const resultadoDuplicado =
+    ActionValidator.validate(
+        acaoDuplicada
+    );
+
+
+testar(
+    "Duplicações são removidas",
+    resultadoDuplicado.action.sides.length === 2
+);
+
+
+testar(
+    "Ambos os lados continuam presentes",
+    resultadoDuplicado.structurallyComplete === true
+);
+
+
+/*
+==================================================
+5. PRESERVAÇÃO DOS DOIS LADOS
+==================================================
+*/
+
+testar(
+    "preservesBothSides reconhece ação completa",
+    ActionValidator.preservesBothSides(
+        acaoCompleta
+    ) === true
+);
+
+
+testar(
+    "preservesBothSides rejeita ação parcial",
+    ActionValidator.preservesBothSides(
+        acaoEsquerda
+    ) === false
+);
+
+
+/*
+==================================================
+6. OUTRAS OPERAÇÕES
+==================================================
+*/
+
+const adicao = {
+
+    type: "add",
+
+    amount: 5,
+
+    sides: [
+        "left",
+        "right"
+    ]
+
+};
+
+
+testar(
+    "Adição nos dois lados é reconhecida",
+    ActionValidator
+        .preservesBothSides(adicao) === true
+);
+
+
+const multiplicacao = {
+
+    type: "multiply",
+
+    amount: 2,
+
+    sides: [
+        "left",
+        "right"
+    ]
+
+};
+
+
+testar(
+    "Multiplicação nos dois lados é reconhecida",
+    ActionValidator
+        .preservesBothSides(multiplicacao) === true
+);
+
+
+/*
+==================================================
+7. ERROS DE ESTRUTURA
+==================================================
+*/
+
+let erroDetectado = false;
+
+
+try {
+
+    ActionValidator.validate(null);
+
+} catch (erro) {
+
+    erroDetectado = true;
+
+}
+
+
+testar(
+    "Ação nula gera erro",
+    erroDetectado === true
+);
+
+
+erroDetectado = false;
+
+
+try {
+
+    ActionValidator.validate({
+
+        type: "subtract",
+
+        amount: 4
+
+    });
+
+} catch (erro) {
+
+    erroDetectado = true;
+
+}
+
+
+testar(
+    "Ação sem sides gera erro",
+    erroDetectado === true
+);
+
+
+erroDetectado = false;
+
+
+try {
+
+    ActionValidator.validate({
+
+        type: "subtract",
+
+        amount: "4",
+
+        sides: [
+            "left",
+            "right"
+        ]
+
+    });
+
+} catch (erro) {
+
+    erroDetectado = true;
+
+}
+
+
+testar(
+    "Quantidade inválida gera erro",
+    erroDetectado === true
+);
+
+
+/*
+==================================================
+RESULTADO
+==================================================
+*/
+
+const total =
+    resultados.length;
+
+const verdes =
+    resultados.filter(
+        item =>
+            item.startsWith("🟢")
+    ).length;
+
+const vermelhos =
+    resultados.filter(
+        item =>
+            item.startsWith("🔴")
+    ).length;
+
+
+resultados.unshift(
+    `RESULTADO: ${verdes}/${total} testes verdes`
+);
+
+
+resultados.push("");
+
+
+resultados.push(
+    vermelhos === 0
+        ? "🎯 TODOS OS TESTES PASSARAM."
+        : `⚠️ ${vermelhos} teste(s) precisam de revisão.`
+);
+
+
+document.getElementById(
+    "resultado"
+).textContent =
+    resultados.join("\n");
+
+</script>
+
+</body>
+
+</html>

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Teste - Adição nas Ações da Missão Equilíbrio</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 30px;
+    }
+
+    h1 {
+      color: #facc15;
+    }
+
+    .pass {
+      color: #22c55e;
+      margin: 8px 0;
+    }
+
+    .fail {
+      color: #ef4444;
+      margin: 8px 0;
+    }
+
+    pre {
+      background: #020617;
+      padding: 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>Teste — Adição nas Ações da Missão Equilíbrio</h1>
+
+<div id="resultado"></div>
+
+<script type="module">
+
+import { EquationModel } from "../math/algebra/EquationModel.js";
+import { MissionEquilibrioController } from "./MissionEquilibrioController.js";
+
+const resultado = document.getElementById("resultado");
+
+let total = 0;
+let aprovados = 0;
+
+function teste(nome, condicao) {
+
+  total++;
+
+  if (condicao) {
+
+    aprovados++;
+
+    resultado.innerHTML +=
+      `<div class="pass">✅ ${nome}</div>`;
+
+  } else {
+
+    resultado.innerHTML +=
+      `<div class="fail">❌ ${nome}</div>`;
+  }
+}
+
+function testar() {
+
+  // ============================================================
+  // CENÁRIO 1
+  // 2x = 10
+  // Adicionar 3 aos dois lados
+  // Resultado esperado: 2x + 3 = 13
+  // ============================================================
+
+  const controller1 = new MissionEquilibrioController({
+    missionId: "teste-add-completo",
+    initialEquation: new EquationModel({
+      left: [
+        { type: "x", coefficient: 2 }
+      ],
+      right: [
+        { type: "constant", value: 10 }
+      ]
+    })
+  });
+
+  const resultadoCompleto =
+    controller1.executeAction({
+      type: "add",
+      amount: 3,
+      sides: ["left", "right"]
+    });
+
+  teste(
+    "Adição completa deve ser estruturalmente válida",
+    resultadoCompleto.structurallyComplete === true
+  );
+
+  teste(
+    "Adição completa deve preservar equivalência",
+    resultadoCompleto.equivalent === true
+  );
+
+  teste(
+    "Adição completa deve produzir transformação",
+    resultadoCompleto.transformation !== null
+  );
+
+  teste(
+    "A regra aplicada deve ser addToBothSides",
+    resultadoCompleto.rule === "ADD_BOTH_SIDES"
+  );
+
+  const eq1 = resultadoCompleto.equation;
+
+  teste(
+    "Novo lado esquerdo deve conter 2x + 3",
+    eq1.getVariableCoefficient("LEFT") === 2 &&
+    eq1.getConstantValue("LEFT") === 3
+  );
+
+  teste(
+    "Novo lado direito deve ser 13",
+    eq1.getConstantValue("RIGHT") === 13
+  );
+
+  teste(
+    "A nova equação deve continuar tendo solução x = 5",
+    eq1.getSolution().type === "UNIQUE" &&
+    eq1.getSolution().value === 5
+  );
+
+  teste(
+    "A ação deve ter sido registrada",
+    controller1.getState().actions.length === 1
+  );
+
+  teste(
+    "A ação registrada deve indicar resultado balanced",
+    controller1.getState().actions[0].result === "balanced"
+  );
+
+  teste(
+    "A ação registrada deve indicar equivalent = true",
+    controller1.getState().actions[0].equivalent === true
+  );
+
+
+  // ============================================================
+  // CENÁRIO 2
+  // 2x = 10
+  // Adicionar 3 somente à esquerda
+  // Resultado esperado:
+  // ação registrada
+  // sem transformação
+  // equação permanece 2x = 10
+  // ============================================================
+
+  const controller2 = new MissionEquilibrioController({
+    missionId: "teste-add-parcial",
+    initialEquation: new EquationModel({
+      left: [
+        { type: "x", coefficient: 2 }
+      ],
+      right: [
+        { type: "constant", value: 10 }
+      ]
+    })
+  });
+
+  const resultadoParcial =
+    controller2.executeAction({
+      type: "add",
+      amount: 3,
+      sides: ["left"]
+    });
+
+  teste(
+    "Adição parcial deve ser identificada como incompleta",
+    resultadoParcial.structurallyComplete === false
+  );
+
+  teste(
+    "Adição parcial não deve ser equivalente",
+    resultadoParcial.equivalent === false
+  );
+
+  teste(
+    "Adição parcial deve resultar em unbalanced",
+    resultadoParcial.result === "unbalanced"
+  );
+
+  teste(
+    "Adição parcial não deve produzir transformação",
+    resultadoParcial.transformation === null
+  );
+
+  teste(
+    "Adição parcial não deve aplicar regra matemática",
+    resultadoParcial.rule === null
+  );
+
+  const eq2 = controller2.getCurrentEquation();
+
+  teste(
+    "A equação deve permanecer 2x = 10",
+    eq2.getVariableCoefficient("LEFT") === 2 &&
+    eq2.getConstantValue("LEFT") === 0 &&
+    eq2.getConstantValue("RIGHT") === 10
+  );
+
+  teste(
+    "A solução deve continuar sendo x = 5",
+    eq2.getSolution().type === "UNIQUE" &&
+    eq2.getSolution().value === 5
+  );
+
+  teste(
+    "A ação parcial deve ser registrada",
+    controller2.getState().actions.length === 1
+  );
+
+  teste(
+    "A ação parcial deve registrar equivalent = false",
+    controller2.getState().actions[0].equivalent === false
+  );
+
+  teste(
+    "A ação parcial deve registrar result = unbalanced",
+    controller2.getState().actions[0].result === "unbalanced"
+  );
+
+
+  // ============================================================
+  // CENÁRIO 3
+  // Encadeamento:
+  //
+  // 2x = 10
+  // +3 em ambos
+  // -3 em ambos
+  //
+  // Deve voltar para 2x = 10
+  // ============================================================
+
+  const controller3 = new MissionEquilibrioController({
+    missionId: "teste-encadeamento",
+    initialEquation: new EquationModel({
+      left: [
+        { type: "x", coefficient: 2 }
+      ],
+      right: [
+        { type: "constant", value: 10 }
+      ]
+    })
+  });
+
+  const addResult =
+    controller3.executeAction({
+      type: "add",
+      amount: 3,
+      sides: ["left", "right"]
+    });
+
+  const subtractResult =
+    controller3.executeAction({
+      type: "subtract",
+      amount: 3,
+      sides: ["left", "right"]
+    });
+
+  const eq3 = controller3.getCurrentEquation();
+
+  teste(
+    "Encadeamento deve registrar duas ações",
+    controller3.getState().actions.length === 2
+  );
+
+  teste(
+    "Primeira transformação deve ser válida",
+    addResult.transformation !== null &&
+    addResult.equivalent === true
+  );
+
+  teste(
+    "Segunda transformação deve ser válida",
+    subtractResult.transformation !== null &&
+    subtractResult.equivalent === true
+  );
+
+  teste(
+    "Equação final deve voltar a 2x = 10",
+    eq3.getVariableCoefficient("LEFT") === 2 &&
+    eq3.getConstantValue("LEFT") === 0 &&
+    eq3.getConstantValue("RIGHT") === 10
+  );
+
+  teste(
+    "Solução final deve continuar x = 5",
+    eq3.getSolution().type === "UNIQUE" &&
+    eq3.getSolution().value === 5
+  );
+
+
+  // ============================================================
+  // RESUMO
+  // ============================================================
+
+  resultado.innerHTML += `
+    <hr>
+    <h2>${aprovados === total ? "🟢 TODOS OS TESTES PASSARAM" : "🔴 EXISTEM FALHAS"}</h2>
+    <p><strong>${aprovados}/${total}</strong> testes aprovados.</p>
+  `;
+
+}
+
+testar();
+
+</script>
+
+</body>
+</html>

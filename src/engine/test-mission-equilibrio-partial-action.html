@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+
+    <title>Teste — Ação Parcial — Missão Equilíbrio</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f2433;
+            color: white;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #d9a441;
+        }
+
+        #resultado {
+            white-space: pre-line;
+            font-family: monospace;
+            font-size: 16px;
+            line-height: 1.7;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>Missão Equilíbrio — Teste de Ação Parcial</h1>
+
+<div id="resultado"></div>
+
+<script type="module">
+
+
+/*
+==================================================
+IMPORTAÇÕES
+==================================================
+*/
+
+import { EquationModel }
+    from "../math/algebra/EquationModel.js";
+
+import { MissionEquilibrioController }
+    from "./MissionEquilibrioController.js";
+
+
+/*
+==================================================
+INFRAESTRUTURA DE TESTE
+==================================================
+*/
+
+const resultados = [];
+
+
+function testar(nome, condicao) {
+
+    if (condicao) {
+
+        resultados.push(
+            "🟢 " + nome
+        );
+
+    } else {
+
+        resultados.push(
+            "🔴 " + nome
+        );
+    }
+}
+
+
+/*
+==================================================
+1. EQUAÇÃO INICIAL
+==================================================
+*/
+
+const equacao =
+    EquationModel.from({
+
+        left: [
+
+            {
+                type: "x",
+                coefficient: 2
+            },
+
+            {
+                type: "constant",
+                value: 4
+            }
+
+        ],
+
+        right: [
+
+            {
+                type: "constant",
+                value: 14
+            }
+
+        ]
+
+    });
+
+
+/*
+==================================================
+2. CRIAÇÃO DO CONTROLADOR
+==================================================
+*/
+
+const controller =
+    new MissionEquilibrioController({
+
+        missionId:
+            "missao-equilibrio-acao-parcial",
+
+        initialEquation:
+            equacao
+
+    });
+
+
+testar(
+    "Controlador foi criado",
+    controller instanceof MissionEquilibrioController
+);
+
+
+testar(
+    "Equação inicial é 2x + 4 = 14",
+    controller
+        .getCurrentEquation()
+        .toString() ===
+        "2x + 4 = 14"
+);
+
+
+/*
+==================================================
+3. ESTADO INICIAL
+==================================================
+*/
+
+testar(
+    "Nenhuma ação foi registrada inicialmente",
+    controller.state.actions.length === 0
+);
+
+
+testar(
+    "Nenhuma transformação foi registrada inicialmente",
+    controller.state.transformations.length === 0
+);
+
+
+/*
+==================================================
+4. AÇÃO PARCIAL
+==================================================
+
+O estudante tenta retirar 4 somente
+do lado esquerdo.
+
+Isso NÃO deve ser tratado como uma
+transformação matemática válida.
+
+Mas a ação deve ser registrada como
+evidência da atividade.
+==================================================
+*/
+
+const resultado =
+    controller.executeAction({
+
+        type: "subtract",
+
+        amount: 4,
+
+        sides: [
+            "left"
+        ]
+
+    });
+
+
+/*
+==================================================
+5. VALIDAÇÃO DA AÇÃO
+==================================================
+*/
+
+testar(
+    "Resultado da ação foi retornado",
+    resultado !== null
+);
+
+
+testar(
+    "Tipo da ação é subtract",
+    resultado.action.type ===
+        "subtract"
+);
+
+
+testar(
+    "Quantidade da ação é 4",
+    resultado.action.amount === 4
+);
+
+
+testar(
+    "A ação registra somente o lado esquerdo",
+    resultado.action.sides.length === 1 &&
+    resultado.action.sides[0] === "left"
+);
+
+
+testar(
+    "A ação não é estruturalmente completa",
+    resultado.structurallyComplete === false
+);
+
+
+/*
+==================================================
+6. EQUIVALÊNCIA
+==================================================
+*/
+
+testar(
+    "A ação parcial não é equivalente",
+    resultado.equivalent === false
+);
+
+
+testar(
+    "Resultado da ação é unbalanced",
+    resultado.result ===
+        "unbalanced"
+);
+
+
+testar(
+    "Nenhuma regra de equivalência foi aplicada",
+    resultado.rule === null
+);
+
+
+testar(
+    "Nenhuma transformação matemática foi criada",
+    resultado.transformation === null
+);
+
+
+/*
+==================================================
+7. EQUAÇÃO MATEMÁTICA
+==================================================
+
+A equação interna NÃO deve ser alterada.
+
+A ação aconteceu na representação da
+atividade, mas não constituiu uma
+transformação algébrica válida.
+==================================================
+*/
+
+testar(
+    "Equação continua sendo 2x + 4 = 14",
+    controller
+        .getCurrentEquation()
+        .toString() ===
+        "2x + 4 = 14"
+);
+
+
+testar(
+    "Solução continua sendo x = 5",
+    controller
+        .getSolution()
+        .value === 5
+);
+
+
+testar(
+    "5 continua satisfazendo a equação",
+    controller.checkSolution(5) === true
+);
+
+
+/*
+==================================================
+8. TRANSFORMAÇÕES
+==================================================
+*/
+
+testar(
+    "Estado continua sem transformação",
+    controller.state
+        .transformations
+        .length === 0
+);
+
+
+/*
+==================================================
+9. REGISTRO DA AÇÃO
+==================================================
+*/
+
+testar(
+    "A ação parcial foi registrada",
+    controller.state
+        .actions
+        .length === 1
+);
+
+
+const acaoRegistrada =
+    controller.state.actions[0];
+
+
+testar(
+    "Ação registrada é subtract",
+    acaoRegistrada.type ===
+        "subtract"
+);
+
+
+testar(
+    "Ação registrada possui quantidade 4",
+    acaoRegistrada.amount === 4
+);
+
+
+testar(
+    "Ação registrada possui resultado unbalanced",
+    acaoRegistrada.result ===
+        "unbalanced"
+);
+
+
+testar(
+    "Ação registrada possui equivalência false",
+    acaoRegistrada.equivalent === false
+);
+
+
+/*
+==================================================
+10. BALANÇA / REPRESENTAÇÃO
+==================================================
+
+A representação matemática oficial permanece
+associada à equação atual.
+
+Não devemos transformar a equação para:
+
+    2x = 10
+
+porque o estudante ainda não executou
+uma transformação equivalente.
+
+A futura interface visual poderá representar
+o desequilíbrio como estado transitório,
+mas isso será responsabilidade da camada
+de representação/UI.
+==================================================
+*/
+
+const balance =
+    controller.getBalance();
+
+
+testar(
+    "Balança continua disponível",
+    balance !== null
+);
+
+
+testar(
+    "Balança ainda representa 2x",
+    balance.left
+        .filter(
+            item =>
+                item.type === "x"
+        )
+        .reduce(
+            (total, item) =>
+                total + item.quantity,
+            0
+        ) === 2
+);
+
+
+testar(
+    "Balança ainda possui 4 unidades à esquerda",
+    balance.left
+        .filter(
+            item =>
+                item.type === "unit"
+        )
+        .reduce(
+            (total, item) =>
+                total + item.quantity,
+            0
+        ) === 4
+);
+
+
+testar(
+    "Balança ainda possui 14 unidades à direita",
+    balance.right
+        .filter(
+            item =>
+                item.type === "unit"
+        )
+        .reduce(
+            (total, item) =>
+                total + item.quantity,
+            0
+        ) === 14
+);
+
+
+/*
+==================================================
+11. EQUAÇÃO ORIGINAL
+==================================================
+*/
+
+testar(
+    "Equação original permaneceu intacta",
+    equacao.toString() ===
+        "2x + 4 = 14"
+);
+
+
+/*
+==================================================
+12. INTEGRIDADE DA MISSÃO
+==================================================
+*/
+
+testar(
+    "Missão ainda não foi concluída",
+    controller.state.completed === false
+);
+
+
+testar(
+    "Estado atual continua na mesma equação",
+    controller.state.currentEquation
+        .toString() ===
+        "2x + 4 = 14"
+);
+
+
+/*
+==================================================
+13. SERIALIZAÇÃO
+==================================================
+*/
+
+const json =
+    controller.toJSON();
+
+
+testar(
+    "Serialização possui mission",
+    json.mission !== undefined
+);
+
+
+testar(
+    "Serialização possui balance",
+    json.balance !== undefined
+);
+
+
+testar(
+    "Serialização registra uma ação",
+    json.mission.actions.length === 1
+);
+
+
+testar(
+    "Serialização registra zero transformações",
+    json.mission.transformations.length === 0
+);
+
+
+testar(
+    "Serialização preserva 2x + 4 = 14",
+    json.mission.currentEquation ===
+        "2x + 4 = 14"
+);
+
+
+/*
+==================================================
+14. RESUMO CONCEITUAL
+==================================================
+
+Este teste verifica uma distinção central
+da arquitetura do MathLab:
+
+AÇÃO ≠ TRANSFORMAÇÃO MATEMÁTICA
+
+O estudante pode executar uma ação.
+
+O sistema registra essa ação.
+
+Mas somente uma ação que preserva a
+equivalência produz uma transformação
+matemática no estado da equação.
+==================================================
+*/
+
+
+testar(
+    "Ação foi registrada sem alterar a equação",
+    controller.state.actions.length === 1 &&
+    controller.getCurrentEquation().toString() ===
+        "2x + 4 = 14"
+);
+
+
+testar(
+    "Ação parcial não gerou transformação",
+    controller.state.transformations.length === 0
+);
+
+
+/*
+==================================================
+RESULTADO
+==================================================
+*/
+
+const total =
+    resultados.length;
+
+
+const verdes =
+    resultados.filter(
+        item =>
+            item.startsWith("🟢")
+    ).length;
+
+
+const vermelhos =
+    resultados.filter(
+        item =>
+            item.startsWith("🔴")
+    ).length;
+
+
+resultados.unshift(
+    `RESULTADO: ${verdes}/${total} testes verdes`
+);
+
+
+resultados.push("");
+
+
+resultados.push(
+    vermelhos === 0
+        ? "🎯 TODOS OS TESTES PASSARAM."
+        : `⚠️ ${vermelhos} teste(s) precisam de revisão.`
+);
+
+
+document.getElementById(
+    "resultado"
+).textContent =
+    resultados.join("\n");
+
+
+</script>
+
+</body>
+
+</html>
