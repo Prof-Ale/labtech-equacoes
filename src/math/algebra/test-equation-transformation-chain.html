@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Teste — Cadeia de Transformações</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #111827;
+            color: white;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #f5c542;
+        }
+
+        .test {
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 6px;
+            background: #1f2937;
+        }
+
+        .ok {
+            border-left: 5px solid #22c55e;
+        }
+
+        .fail {
+            border-left: 5px solid #ef4444;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            color: #d1d5db;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>Teste — Cadeia de Transformações</h1>
+
+<div id="results"></div>
+
+<script type="module">
+
+import { EquationModel } from "./EquationModel.js";
+import { EquivalenceRules } from "./EquivalenceRules.js";
+import { AlgebraicSimplifier } from "./AlgebraicSimplifier.js";
+import { EquationTransformation } from "./EquationTransformation.js";
+
+const results = document.getElementById("results");
+
+let total = 0;
+let passed = 0;
+
+function test(nome, condition, details = "") {
+
+    total++;
+
+    const div = document.createElement("div");
+
+    div.className = condition
+        ? "test ok"
+        : "test fail";
+
+    if (condition) {
+
+        passed++;
+
+        div.innerHTML = `🟢 ${nome}`;
+
+    } else {
+
+        div.innerHTML = `
+            🔴 ${nome}
+            ${details ? `<pre>${details}</pre>` : ""}
+        `;
+    }
+
+    results.appendChild(div);
+}
+
+
+/* =========================================================
+   CADEIA 1
+   2x + 4 = 14
+   ↓ -4
+   2x = 10
+   ↓ ÷2
+   x = 5
+   ========================================================= */
+
+const initialEquation = new EquationModel({
+
+    left: [
+        {
+            type: "x",
+            coefficient: 2
+        },
+        {
+            type: "constant",
+            value: 4
+        }
+    ],
+
+    right: [
+        {
+            type: "constant",
+            value: 14
+        }
+    ]
+
+});
+
+
+/* ---------------------------------------------------------
+   Transformação 1 — subtrair 4
+   --------------------------------------------------------- */
+
+const rule1 =
+    EquivalenceRules.subtractFromBothSides(
+        initialEquation,
+        4
+    );
+
+const equationAfterSubtract =
+    AlgebraicSimplifier.simplifyEquation(
+        rule1.equation
+    );
+
+const transformation1 =
+    EquationTransformation.fromRuleResult(
+        initialEquation,
+        rule1
+    );
+
+
+test(
+    "Primeira transformação deve ser equivalente",
+    transformation1.equivalent === true
+);
+
+test(
+    "Primeira regra deve ser SUBTRACT_BOTH_SIDES",
+    transformation1.rule === "SUBTRACT_BOTH_SIDES"
+);
+
+test(
+    "Primeira equação deve ser 2x = 10",
+    equationAfterSubtract.toString() === "2x = 10"
+);
+
+test(
+    "A solução após a primeira transformação deve continuar sendo x = 5",
+    equationAfterSubtract.getSolution().type === "UNIQUE" &&
+    equationAfterSubtract.getSolution().value === 5
+);
+
+
+/* ---------------------------------------------------------
+   Transformação 2 — dividir por 2
+   --------------------------------------------------------- */
+
+const rule2 =
+    EquivalenceRules.divideBothSides(
+        equationAfterSubtract,
+        2
+    );
+
+const equationAfterDivide =
+    AlgebraicSimplifier.simplifyEquation(
+        rule2.equation
+    );
+
+const transformation2 =
+    EquationTransformation.fromRuleResult(
+        equationAfterSubtract,
+        rule2
+    );
+
+
+test(
+    "Segunda transformação deve ser equivalente",
+    transformation2.equivalent === true
+);
+
+test(
+    "Segunda regra deve ser DIVIDE_BOTH_SIDES",
+    transformation2.rule === "DIVIDE_BOTH_SIDES"
+);
+
+test(
+    "Segunda equação deve ser x = 5",
+    equationAfterDivide.toString() === "x = 5"
+);
+
+test(
+    "A solução final deve ser x = 5",
+    equationAfterDivide.getSolution().type === "UNIQUE" &&
+    equationAfterDivide.getSolution().value === 5
+);
+
+
+/* ---------------------------------------------------------
+   Verificação da cadeia
+   --------------------------------------------------------- */
+
+test(
+    "A transformação 1 deve começar na equação inicial",
+    transformation1.before.toString() === "2x + 4 = 14"
+);
+
+test(
+    "A transformação 1 deve terminar em 2x = 10",
+    transformation1.after.toString() === "2x = 10"
+);
+
+test(
+    "A transformação 2 deve começar em 2x = 10",
+    transformation2.before.toString() === "2x = 10"
+);
+
+test(
+    "A transformação 2 deve terminar em x = 5",
+    transformation2.after.toString() === "x = 5"
+);
+
+test(
+    "A saída da primeira transformação deve ser a entrada da segunda",
+    transformation1.after.toString() ===
+    transformation2.before.toString()
+);
+
+
+/* =========================================================
+   CADEIA 2
+   x + 2 = 7
+   ↓ ×2
+   2x + 4 = 14
+   ↓ -4
+   2x = 10
+   ========================================================= */
+
+const secondInitialEquation = new EquationModel({
+
+    left: [
+        {
+            type: "x",
+            coefficient: 1
+        },
+        {
+            type: "constant",
+            value: 2
+        }
+    ],
+
+    right: [
+        {
+            type: "constant",
+            value: 7
+        }
+    ]
+
+});
+
+
+/* ---------------------------------------------------------
+   Transformação 3 — multiplicar por 2
+   --------------------------------------------------------- */
+
+const rule3 =
+    EquivalenceRules.multiplyBothSides(
+        secondInitialEquation,
+        2
+    );
+
+const equationAfterMultiply =
+    AlgebraicSimplifier.simplifyEquation(
+        rule3.equation
+    );
+
+const transformation3 =
+    EquationTransformation.fromRuleResult(
+        secondInitialEquation,
+        rule3
+    );
+
+
+test(
+    "Terceira transformação deve ser equivalente",
+    transformation3.equivalent === true
+);
+
+test(
+    "Terceira regra deve ser MULTIPLY_BOTH_SIDES",
+    transformation3.rule === "MULTIPLY_BOTH_SIDES"
+);
+
+test(
+    "Terceira equação deve ser 2x + 4 = 14",
+    equationAfterMultiply.toString() === "2x + 4 = 14"
+);
+
+
+/* ---------------------------------------------------------
+   Transformação 4 — subtrair 4
+   --------------------------------------------------------- */
+
+const rule4 =
+    EquivalenceRules.subtractFromBothSides(
+        equationAfterMultiply,
+        4
+    );
+
+const equationAfterSecondSubtract =
+    AlgebraicSimplifier.simplifyEquation(
+        rule4.equation
+    );
+
+const transformation4 =
+    EquationTransformation.fromRuleResult(
+        equationAfterMultiply,
+        rule4
+    );
+
+
+test(
+    "Quarta transformação deve ser equivalente",
+    transformation4.equivalent === true
+);
+
+test(
+    "Quarta regra deve ser SUBTRACT_BOTH_SIDES",
+    transformation4.rule === "SUBTRACT_BOTH_SIDES"
+);
+
+test(
+    "Quarta equação deve ser 2x = 10",
+    equationAfterSecondSubtract.toString() === "2x = 10"
+);
+
+test(
+    "A solução deve continuar sendo x = 5",
+    equationAfterSecondSubtract.getSolution().type === "UNIQUE" &&
+    equationAfterSecondSubtract.getSolution().value === 5
+);
+
+test(
+    "A cadeia multiplicação → subtração deve conectar corretamente",
+    transformation3.after.toString() ===
+    transformation4.before.toString()
+);
+
+
+/* =========================================================
+   TESTE FINAL — integridade das transformações
+   ========================================================= */
+
+const json1 = transformation1.toJSON();
+const json2 = transformation2.toJSON();
+
+test(
+    "A primeira transformação deve possuir before",
+    json1.before !== null
+);
+
+test(
+    "A primeira transformação deve possuir after",
+    json1.after !== null
+);
+
+test(
+    "A segunda transformação deve possuir before",
+    json2.before !== null
+);
+
+test(
+    "A segunda transformação deve possuir after",
+    json2.after !== null
+);
+
+
+/* =========================================================
+   RESUMO
+   ========================================================= */
+
+const summary = document.createElement("h2");
+
+summary.textContent =
+    `${passed}/${total} testes aprovados`;
+
+summary.style.color =
+    passed === total
+        ? "#22c55e"
+        : "#ef4444";
+
+results.prepend(summary);
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Teste — Divisão por Ambos os Lados</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #111827;
+            color: white;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #f5c542;
+        }
+
+        .test {
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 6px;
+            background: #1f2937;
+        }
+
+        .ok {
+            border-left: 5px solid #22c55e;
+        }
+
+        .fail {
+            border-left: 5px solid #ef4444;
+        }
+
+        pre {
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>Teste — Divisão por Ambos os Lados</h1>
+
+<div id="results"></div>
+
+<script type="module">
+
+import { EquationModel } from "./EquationModel.js";
+import { EquivalenceRules } from "./EquivalenceRules.js";
+import { AlgebraicSimplifier } from "./AlgebraicSimplifier.js";
+
+const results = document.getElementById("results");
+
+let total = 0;
+let passed = 0;
+
+function test(nome, condition, details = "") {
+
+    total++;
+
+    const div = document.createElement("div");
+
+    div.className = condition
+        ? "test ok"
+        : "test fail";
+
+    if (condition) {
+        passed++;
+
+        div.innerHTML = `🟢 ${nome}`;
+
+    } else {
+
+        div.innerHTML = `
+            🔴 ${nome}
+            ${details ? `<pre>${details}</pre>` : ""}
+        `;
+    }
+
+    results.appendChild(div);
+}
+
+
+/* =========================================================
+   TESTE 1
+   2x = 10
+   dividir ambos os lados por 2
+   deve produzir
+   x = 5
+   ========================================================= */
+
+const equation1 = new EquationModel({
+    left: [
+        {
+            type: "x",
+            coefficient: 2
+        }
+    ],
+    right: [
+        {
+            type: "constant",
+            value: 10
+        }
+    ]
+});
+
+const result1 =
+    EquivalenceRules.divideBothSides(
+        equation1,
+        2
+    );
+
+const simplified1 =
+    AlgebraicSimplifier.simplifyEquation(
+        result1.equation
+    );
+
+test(
+    "A regra deve indicar DIVIDE_BOTH_SIDES",
+    result1.rule === "DIVIDE_BOTH_SIDES"
+);
+
+test(
+    "A transformação deve ser equivalente",
+    result1.equivalent === true
+);
+
+test(
+    "O lado esquerdo deve ser x",
+    simplified1.getVariableCoefficient("LEFT") === 1
+);
+
+test(
+    "O lado direito deve ser 5",
+    simplified1.getConstantValue("RIGHT") === 5
+);
+
+test(
+    "A equação deve ser x = 5",
+    simplified1.toString() === "x = 5"
+);
+
+test(
+    "A solução deve continuar sendo x = 5",
+    simplified1.getSolution().type === "UNIQUE" &&
+    simplified1.getSolution().value === 5
+);
+
+
+/* =========================================================
+   TESTE 2
+   2x + 4 = 14
+   dividir ambos os lados por 2
+   deve produzir
+   x + 2 = 7
+   ========================================================= */
+
+const equation2 = new EquationModel({
+    left: [
+        {
+            type: "x",
+            coefficient: 2
+        },
+        {
+            type: "constant",
+            value: 4
+        }
+    ],
+    right: [
+        {
+            type: "constant",
+            value: 14
+        }
+    ]
+});
+
+const result2 =
+    EquivalenceRules.divideBothSides(
+        equation2,
+        2
+    );
+
+const simplified2 =
+    AlgebraicSimplifier.simplifyEquation(
+        result2.equation
+    );
+
+test(
+    "Segundo caso deve permanecer equivalente",
+    result2.equivalent === true
+);
+
+test(
+    "Novo lado esquerdo deve ser x + 2",
+    simplified2.getVariableCoefficient("LEFT") === 1 &&
+    simplified2.getConstantValue("LEFT") === 2
+);
+
+test(
+    "Novo lado direito deve ser 7",
+    simplified2.getConstantValue("RIGHT") === 7
+);
+
+test(
+    "A equação deve ser x + 2 = 7",
+    simplified2.toString() === "x + 2 = 7"
+);
+
+test(
+    "A solução deve continuar sendo x = 5",
+    simplified2.getSolution().type === "UNIQUE" &&
+    simplified2.getSolution().value === 5
+);
+
+
+/* =========================================================
+   TESTE 3
+   divisão por 1
+   deve preservar a equação
+   ========================================================= */
+
+const equation3 = new EquationModel({
+    left: [
+        {
+            type: "x",
+            coefficient: 3
+        },
+        {
+            type: "constant",
+            value: 6
+        }
+    ],
+    right: [
+        {
+            type: "constant",
+            value: 21
+        }
+    ]
+});
+
+const result3 =
+    EquivalenceRules.divideBothSides(
+        equation3,
+        1
+    );
+
+const simplified3 =
+    AlgebraicSimplifier.simplifyEquation(
+        result3.equation
+    );
+
+test(
+    "Dividir por 1 deve preservar a equação",
+    simplified3.toString() === "3x + 6 = 21"
+);
+
+test(
+    "A solução deve continuar sendo x = 5",
+    simplified3.getSolution().type === "UNIQUE" &&
+    simplified3.getSolution().value === 5
+);
+
+
+/* =========================================================
+   TESTE 4
+   divisão por zero
+   deve ser rejeitada
+   ========================================================= */
+
+const equation4 = new EquationModel({
+    left: [
+        {
+            type: "x",
+            coefficient: 2
+        }
+    ],
+    right: [
+        {
+            type: "constant",
+            value: 10
+        }
+    ]
+});
+
+let divisionByZeroRejected = false;
+let divisionByZeroMessage = "";
+
+try {
+
+    EquivalenceRules.divideBothSides(
+        equation4,
+        0
+    );
+
+} catch (error) {
+
+    divisionByZeroRejected = true;
+    divisionByZeroMessage = error.message;
+}
+
+test(
+    "Divisão por zero deve ser rejeitada",
+    divisionByZeroRejected
+);
+
+test(
+    "A mensagem deve informar que não é possível dividir por zero",
+    divisionByZeroMessage === "Não é possível dividir por zero."
+);
+
+
+/* =========================================================
+   RESUMO
+   ========================================================= */
+
+const summary = document.createElement("h2");
+
+summary.textContent =
+    `${passed}/${total} testes aprovados`;
+
+summary.style.color =
+    passed === total
+        ? "#22c55e"
+        : "#ef4444";
+
+results.prepend(summary);
+
+</script>
+
+</body>
+</html>

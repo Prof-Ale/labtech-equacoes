@@ -8,12 +8,14 @@
  * Princípio arquitetural:
  * EquationModel representa o estado matemático.
  * EquivalenceRules executa as regras de transformação.
+ * AlgebraicSimplifier organiza a representação resultante.
  * EquationTransformation registra o acontecimento.
  *
  * A transformação ainda não pertence à interface nem à ADA.
  */
 
 import { EquationModel } from "./EquationModel.js";
+import { AlgebraicSimplifier } from "./AlgebraicSimplifier.js";
 
 export class EquationTransformation {
 
@@ -70,6 +72,9 @@ export class EquationTransformation {
     /**
      * Cria uma transformação a partir de um resultado
      * produzido por EquivalenceRules.
+     *
+     * O resultado da regra é simplificado antes de ser
+     * registrado como estado final da transformação.
      */
     static fromRuleResult(before, ruleResult) {
 
@@ -78,6 +83,17 @@ export class EquationTransformation {
                 "O resultado da regra é inválido."
             );
         }
+
+        if (!(ruleResult.equation instanceof EquationModel)) {
+            throw new TypeError(
+                "O resultado da regra deve possuir uma EquationModel."
+            );
+        }
+
+        const simplifiedAfter =
+            AlgebraicSimplifier.simplifyEquation(
+                ruleResult.equation
+            );
 
         return new EquationTransformation({
             before,
@@ -88,7 +104,7 @@ export class EquationTransformation {
                     ruleResult.factor ??
                     ruleResult.divisor
             },
-            after: ruleResult.equation,
+            after: simplifiedAfter,
             equivalent: ruleResult.equivalent,
             rule: ruleResult.rule
         });
