@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+
+    <title>
+        Teste — Missão Equilíbrio
+        Long Sequence
+    </title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #111827;
+            color: white;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #f2c14e;
+        }
+
+        h2 {
+            color: #60a5fa;
+            margin-top: 30px;
+        }
+
+        .test {
+            padding: 10px;
+            margin: 6px 0;
+            border-radius: 6px;
+        }
+
+        .ok {
+            background: #14532d;
+        }
+
+        .fail {
+            background: #7f1d1d;
+        }
+
+        .summary {
+            margin-top: 30px;
+            padding: 15px;
+            background: #1f2937;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .section {
+            margin-top: 25px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #374151;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<h1>
+    ⚙️⚖️ Teste de Trajetória — Missão Equilíbrio
+</h1>
+
+<p>
+    Validação de sequências completas de transformações.
+</p>
+
+<div id="results"></div>
+
+<div id="summary" class="summary"></div>
+
+
+<script type="module">
+
+import { EquationModel }
+    from "../math/algebra/EquationModel.js";
+
+import { MissionEquilibrioController }
+    from "./MissionEquilibrioController.js";
+
+
+const results =
+    document.getElementById("results");
+
+const summary =
+    document.getElementById("summary");
+
+
+let total = 0;
+let passed = 0;
+
+
+function section(title) {
+
+    const div =
+        document.createElement("div");
+
+    div.className = "section";
+
+    div.innerHTML =
+        `<h2>${title}</h2>`;
+
+    results.appendChild(div);
+}
+
+
+function test(name, condition) {
+
+    total++;
+
+    if (condition) {
+        passed++;
+    }
+
+    const div =
+        document.createElement("div");
+
+    div.className =
+        "test " +
+        (condition ? "ok" : "fail");
+
+    div.textContent =
+        (condition ? "🟢 " : "🔴 ") +
+        name;
+
+    results.appendChild(div);
+}
+
+
+// ==================================================
+// MISSÃO 1
+//
+// 2x + 7 = 19
+//      ↓ −7
+// 2x = 12
+//      ↓ ÷2
+// x = 6
+// ==================================================
+
+section(
+    "MISSÃO 1 — 2x + 7 = 19 → x = 6"
+);
+
+
+const equation1 =
+    new EquationModel({
+
+        left: [
+            {
+                type: "x",
+                coefficient: 2
+            },
+            {
+                type: "constant",
+                value: 7
+            }
+        ],
+
+        right: [
+            {
+                type: "constant",
+                value: 19
+            }
+        ]
+    });
+
+
+const mission1 =
+    new MissionEquilibrioController({
+
+        missionId:
+            "long-sequence-01",
+
+        initialEquation:
+            equation1
+    });
+
+
+test(
+    "Missão 1 deve iniciar em 2x + 7 = 19",
+    mission1
+        .getCurrentEquation()
+        .toString() === "2x + 7 = 19"
+);
+
+
+// --------------------------------------------------
+// PASSO 1 — SUBTRAIR 7
+// --------------------------------------------------
+
+const mission1Step1 =
+    mission1.executeAction({
+
+        type: "subtract",
+
+        amount: 7,
+
+        sides: [
+            "left",
+            "right"
+        ]
+    });
+
+
+test(
+    "Passo 1 deve ser equivalente",
+    mission1Step1.equivalent === true
+);
+
+test(
+    "Passo 1 deve usar SUBTRACT_BOTH_SIDES",
+    mission1Step1.rule ===
+    "SUBTRACT_BOTH_SIDES"
+);
+
+test(
+    "Passo 1 deve produzir 2x = 12",
+    mission1Step1.equation.toString() ===
+    "2x = 12"
+);
+
+test(
+    "Passo 1 deve preservar a solução x = 6",
+    mission1Step1.equation
+        .getSolution()
+        .value === 6
+);
+
+test(
+    "Passo 1 deve criar uma transformação",
+    mission1Step1.transformation !== null
+);
+
+test(
+    "Passo 1 deve registrar uma ação",
+    mission1
+        .getState()
+        .actions
+        .length === 1
+);
+
+
+// --------------------------------------------------
+// PASSO 2 — DIVIDIR POR 2
+// --------------------------------------------------
+
+const mission1Step2 =
+    mission1.executeAction({
+
+        type: "divide",
+
+        divisor: 2,
+
+        sides: [
+            "left",
+            "right"
+        ]
+    });
+
+
+test(
+    "Passo 2 deve ser equivalente",
+    mission1Step2.equivalent === true
+);
+
+test(
+    "Passo 2 deve usar DIVIDE_BOTH_SIDES",
+    mission1Step2.rule ===
+    "DIVIDE_BOTH_SIDES"
+);
+
+test(
+    "Passo 2 deve produzir x = 6",
+    mission1Step2.equation.toString() ===
+    "x = 6"
+);
+
+test(
+    "Passo 2 deve preservar a solução x = 6",
+    mission1Step2.equation
+        .getSolution()
+        .value === 6
+);
+
+test(
+    "Passo 2 deve criar uma transformação",
+    mission1Step2.transformation !== null
+);
+
+test(
+    "Missão 1 deve possuir duas transformações",
+    mission1
+        .getState()
+        .transformations
+        .length === 2
+);
+
+test(
+    "Missão 1 deve possuir duas ações",
+    mission1
+        .getState()
+        .actions
+        .length === 2
+);
+
+
+// --------------------------------------------------
+// CONTINUIDADE DA TRAJETÓRIA
+// --------------------------------------------------
+
+test(
+    "Transformação 1 deve começar na equação inicial",
+    mission1
+        .getState()
+        .transformations[0]
+        .before
+        .toString() ===
+    "2x + 7 = 19"
+);
+
+test(
+    "Transformação 1 deve terminar em 2x = 12",
+    mission1
+        .getState()
+        .transformations[0]
+        .after
+        .toString() ===
+    "2x = 12"
+);
+
+test(
+    "Transformação 2 deve começar em 2x = 12",
+    mission1
+        .getState()
+        .transformations[1]
+        .before
+        .toString() ===
+    "2x = 12"
+);
+
+test(
+    "Transformação 2 deve terminar em x = 6",
+    mission1
+        .getState()
+        .transformations[1]
+        .after
+        .toString() ===
+    "x = 6"
+);
+
+test(
+    "A transformação 2 deve começar onde a 1 terminou",
+    mission1
+        .getState()
+        .transformations[1]
+        .before
+        .toString() ===
+    mission1
+        .getState()
+        .transformations[0]
+        .after
+        .toString()
+);
+
+
+// ==================================================
+// MISSÃO 2
+//
+// 3x + 6 = 21
+//      ↓ −6
+// 3x = 15
+//      ↓ ÷3
+// x = 5
+// ==================================================
+
+section(
+    "MISSÃO 2 — 3x + 6 = 21 → x = 5"
+);
+
+
+const equation2 =
+    new EquationModel({
+
+        left: [
+            {
+                type: "x",
+                coefficient: 3
+            },
+            {
+                type: "constant",
+                value: 6
+            }
+        ],
+
+        right: [
+            {
+                type: "constant",
+                value: 21
+            }
+        ]
+    });
+
+
+const mission2 =
+    new MissionEquilibrioController({
+
+        missionId:
+            "long-sequence-02",
+
+        initialEquation:
+            equation2
+    });
+
+
+// --------------------------------------------------
+// PASSO 1
+// --------------------------------------------------
+
+const mission2Step1 =
+    mission2.executeAction({
+
+        type: "subtract",
+
+        amount: 6,
+
+        sides: [
+            "left",
+            "right"
+        ]
+    });
+
+
+test(
+    "Missão 2 — passo 1 deve produzir 3x = 15",
+    mission2Step1.equation.toString() ===
+    "3x = 15"
+);
+
+test(
+    "Missão 2 — passo 1 deve ser equivalente",
+    mission2Step1.equivalent === true
+);
+
+test(
+    "Missão 2 — passo 1 deve preservar x = 5",
+    mission2Step1.equation
+        .getSolution()
+        .value === 5
+);
+
+
+// --------------------------------------------------
+// PASSO 2
+// --------------------------------------------------
+
+const mission2Step2 =
+    mission2.executeAction({
+
+        type: "divide",
+
+        divisor: 3,
+
+        sides: [
+            "left",
+            "right"
+        ]
+    });
+
+
+test(
+    "Missão 2 — passo 2 deve produzir x = 5",
+    mission2Step2.equation.toString() ===
+    "x = 5"
+);
+
+test(
+    "Missão 2 — passo 2 deve ser equivalente",
+    mission2Step2.equivalent === true
+);
+
+test(
+    "Missão 2 — passo 2 deve preservar x = 5",
+    mission2Step2.equation
+        .getSolution()
+        .value === 5
+);
+
+
+// --------------------------------------------------
+// HISTÓRICO
+// --------------------------------------------------
+
+test(
+    "Missão 2 deve possuir duas transformações",
+    mission2
+        .getState()
+        .transformations
+        .length === 2
+);
+
+test(
+    "Missão 2 deve possuir duas ações",
+    mission2
+        .getState()
+        .actions
+        .length === 2
+);
+
+test(
+    "Missão 2 deve terminar em x = 5",
+    mission2
+        .getCurrentEquation()
+        .toString() ===
+    "x = 5"
+);
+
+
+// ==================================================
+// MISSÃO 3
+//
+// TESTE DE MUDANÇA DE ESTRATÉGIA
+//
+// 2x + 4 = 14
+//      ↓ −4
+// 2x = 10
+//      ↓ ÷2
+// x = 5
+// ==================================================
+
+section(
+    "MISSÃO 3 — Estratégia + trajetória"
+);
+
+
+const equation3 =
+    new EquationModel({
+
+        left: [
+            {
+                type: "x",
+                coefficient: 2
+            },
+            {
+                type: "constant",
+                value: 4
+            }
+        ],
+
+        right: [
+            {
+                type: "constant",
+                value: 14
+            }
+        ]
+    });
+
+
+const mission3 =
+    new MissionEquilibrioController({
+
+        missionId:
+            "long-sequence-03",
+
+        initialEquation:
+            equation3
+    });
+
+
+// --------------------------------------------------
+// REGISTRO DA ESTRATÉGIA
+// --------------------------------------------------
+
+mission3.setStrategy(
+    "equilibrio_progressivo"
+);
+
+test(
+    "Estratégia deve ser registrada",
+    mission3
+        .getState()
+        .strategy ===
+    "equilibrio_progressivo"
+);
+
+
+// --------------------------------------------------
+// REPRESENTAÇÃO
+// --------------------------------------------------
+
+mission3.setRepresentation(
+    "concrete"
+);
+
+test(
+    "Representação deve ser concrete",
+    mission3
+        .getState()
+        .currentRepresentation ===
+    "concrete"
+);
+
+
+// --------------------------------------------------
+// MEDIAÇÃO
+// --------------------------------------------------
+
+mission3.setMediationLevel(1);
+
+test(
+    "Nível de mediação deve ser 1",
+    mission3
+        .getState()
+        .mediationLevel === 1
+);
+
+
+// --------------------------------------------------
+// PASSO 1
+// --------------------------------------------------
+
+const mission3Step1 =
+    mission3.executeAction({
+
+        type: "subtract",
+
+        amount: 4,
+
+        sides: [
+            "left",
+            "right"
+        ]
+    });
+
+
+test(
+    "Missão 3 — passo 1 deve produzir 2x = 10",
+    mission3Step1.equation.toString() ===
+    "2x = 10"
+);
+
+
+// --------------------------------------------------
+// REDUÇÃO DE MEDIAÇÃO
+// --------------------------------------------------
+
+mission3.setMediationLevel(0);
+
+test(
+    "Mediação pode ser reduzida",
+    mission3
+        .getState()
+        .mediationLevel === 0
+);
+
+
+// --------------------------------------------------
+// PASSO 2
+// --------------------------------------------------
+
+const mission3Step2 =
+    mission3.executeAction({
+
+        type: "divide",
+
+        divisor: 2,
+
+        sides: [
+            "left",
+            "right"
+        ]
+    });
+
+
+test(
+    "Missão 3 — passo 2 deve produzir x = 5",
+    mission3Step2.equation.toString() ===
+    "x = 5"
+);
+
+test(
+    "Missão 3 deve terminar com solução x = 5",
+    mission3
+        .getCurrentEquation()
+        .getSolution()
+        .value === 5
+);
+
+test(
+    "Missão 3 deve possuir duas transformações",
+    mission3
+        .getState()
+        .transformations
+        .length === 2
+);
+
+test(
+    "Missão 3 deve possuir duas ações",
+    mission3
+        .getState()
+        .actions
+        .length === 2
+);
+
+
+// ==================================================
+// VERIFICAÇÃO DE INVARIANTE
+// ==================================================
+
+section(
+    "INVARIANTE MATEMÁTICA"
+);
+
+
+function verifyTransformationChain(
+    controller
+) {
+
+    const transformations =
+        controller
+            .getState()
+            .transformations;
+
+    for (
+        let i = 1;
+        i < transformations.length;
+        i++
+    ) {
+
+        if (
+            transformations[i]
+                .before
+                .toString() !==
+            transformations[i - 1]
+                .after
+                .toString()
+        ) {
+
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+test(
+    "Missão 1 deve manter continuidade entre transformações",
+    verifyTransformationChain(mission1)
+);
+
+test(
+    "Missão 2 deve manter continuidade entre transformações",
+    verifyTransformationChain(mission2)
+);
+
+test(
+    "Missão 3 deve manter continuidade entre transformações",
+    verifyTransformationChain(mission3)
+);
+
+
+// ==================================================
+// SERIALIZAÇÃO
+// ==================================================
+
+section(
+    "SERIALIZAÇÃO DA TRAJETÓRIA"
+);
+
+
+const serialized =
+    mission3.toJSON();
+
+
+test(
+    "Estado serializado deve possuir mission",
+    serialized.mission !== undefined
+);
+
+test(
+    "Estado serializado deve possuir balance",
+    serialized.balance !== undefined
+);
+
+test(
+    "Estado serializado deve possuir duas transformações",
+    serialized.mission
+        .transformations
+        .length === 2
+);
+
+test(
+    "Estado serializado deve possuir duas ações",
+    serialized.mission
+        .actions
+        .length === 2
+);
+
+test(
+    "Estado serializado deve preservar estratégia",
+    serialized.mission
+        .strategy ===
+    "equilibrio_progressivo"
+);
+
+test(
+    "Estado serializado deve preservar representação",
+    serialized.mission
+        .currentRepresentation ===
+    "concrete"
+);
+
+test(
+    "Estado serializado deve preservar mediação",
+    serialized.mission
+        .mediationLevel === 0
+);
+
+
+// ==================================================
+// RESULTADO
+// ==================================================
+
+summary.textContent =
+    `${passed}/${total} testes aprovados`;
+
+if (passed === total) {
+
+    summary.style.color =
+        "#86efac";
+
+    summary.textContent +=
+        " — TRAJETÓRIA VALIDADA 🟢⚙️⚖️";
+
+} else {
+
+    summary.style.color =
+        "#fca5a5";
+
+    summary.textContent +=
+        " — existem falhas a investigar 🔴";
+}
+
+</script>
+
+</body>
+
+</html>

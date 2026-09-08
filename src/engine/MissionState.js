@@ -13,8 +13,12 @@
  * EquationModel        → estado matemático
  * EquivalenceRules     → transformações válidas
  * MissionState         → estado da atividade
+ * LearningEvidence     → evidências observáveis
  * ADA                  → interpretação pedagógica futura
  */
+
+import { LearningEvidence } from "./LearningEvidence.js";
+
 
 export class MissionState {
 
@@ -50,6 +54,14 @@ export class MissionState {
 
         this.actions = [];
 
+        /**
+         * Evidências observáveis da atividade.
+         *
+         * MissionState apenas armazena.
+         * A interpretação pertence à ADA.
+         */
+        this.evidences = [];
+
         this.currentRepresentation =
             "concrete";
 
@@ -70,7 +82,7 @@ export class MissionState {
     /**
      * Registra uma ação realizada pelo estudante.
      *
-     * A ação é registrada como evidência.
+     * A ação é registrada como fato da atividade.
      */
     recordAction(action) {
 
@@ -104,6 +116,27 @@ export class MissionState {
 
         this.currentEquation =
             transformation.after.clone();
+    }
+
+
+    /**
+     * Registra uma evidência observável
+     * da atividade de aprendizagem.
+     *
+     * MissionState não interpreta a evidência.
+     * A ADA poderá analisá-la posteriormente.
+     */
+    recordEvidence(evidence) {
+
+        if (!(evidence instanceof LearningEvidence)) {
+            throw new TypeError(
+                "A evidência deve ser uma instância de LearningEvidence."
+            );
+        }
+
+        this.evidences.push(
+            evidence.clone()
+        );
     }
 
 
@@ -221,6 +254,12 @@ export class MissionState {
                 action => ({ ...action })
             );
 
+        clone.evidences =
+            this.evidences.map(
+                evidence =>
+                    evidence.clone()
+            );
+
         clone.currentRepresentation =
             this.currentRepresentation;
 
@@ -266,6 +305,12 @@ export class MissionState {
             actions:
                 this.actions.map(
                     action => ({ ...action })
+                ),
+
+            evidences:
+                this.evidences.map(
+                    evidence =>
+                        evidence.toJSON()
                 ),
 
             currentRepresentation:

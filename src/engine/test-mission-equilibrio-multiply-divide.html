@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+
+    <title>
+        Teste — Missão Equilíbrio
+        Multiply / Divide
+    </title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #111827;
+            color: white;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #f2c14e;
+        }
+
+        h2 {
+            color: #60a5fa;
+            margin-top: 30px;
+        }
+
+        .test {
+            padding: 10px;
+            margin: 6px 0;
+            border-radius: 6px;
+        }
+
+        .ok {
+            background: #14532d;
+        }
+
+        .fail {
+            background: #7f1d1d;
+        }
+
+        .summary {
+            margin-top: 30px;
+            padding: 15px;
+            background: #1f2937;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<h1>
+    ⚙️⚖️ Motor + Chassi
+</h1>
+
+<p>
+    Teste integrado da Missão Equilíbrio —
+    multiplicação e divisão.
+</p>
+
+<div id="results"></div>
+
+<div id="summary" class="summary"></div>
+
+
+<script type="module">
+
+import { EquationModel }
+    from "../math/algebra/EquationModel.js";
+
+import { MissionEquilibrioController }
+    from "./MissionEquilibrioController.js";
+
+
+const results =
+    document.getElementById("results");
+
+const summary =
+    document.getElementById("summary");
+
+
+let total = 0;
+let passed = 0;
+
+
+function test(name, condition) {
+
+    total++;
+
+    if (condition) {
+        passed++;
+    }
+
+    const div =
+        document.createElement("div");
+
+    div.className =
+        "test " +
+        (condition ? "ok" : "fail");
+
+    div.textContent =
+        (condition ? "🟢 " : "🔴 ") +
+        name;
+
+    results.appendChild(div);
+}
+
+
+function expectError(name, fn) {
+
+    let error = false;
+
+    try {
+        fn();
+    } catch {
+        error = true;
+    }
+
+    test(name, error);
+}
+
+
+// ==================================================
+// TESTE 1
+// MULTIPLICAÇÃO
+//
+// x + 2 = 7
+// × 2
+// 2x + 4 = 14
+// ==================================================
+
+const equationMultiply =
+    new EquationModel({
+
+        left: [
+            {
+                type: "x",
+                coefficient: 1
+            },
+            {
+                type: "constant",
+                value: 2
+            }
+        ],
+
+        right: [
+            {
+                type: "constant",
+                value: 7
+            }
+        ]
+    });
+
+
+const controllerMultiply =
+    new MissionEquilibrioController({
+
+        missionId:
+            "test-multiply",
+
+        initialEquation:
+            equationMultiply
+    });
+
+
+const multiplyResult =
+    controllerMultiply.executeAction({
+
+        type: "multiply",
+
+        factor: 2,
+
+        sides: [
+            "left",
+            "right"
+        ]
+    });
+
+
+test(
+    "Multiplicação deve produzir transformação",
+    multiplyResult.transformation !== null
+);
+
+test(
+    "Multiplicação deve ser equivalente",
+    multiplyResult.equivalent === true
+);
+
+test(
+    "Regra deve ser MULTIPLY_BOTH_SIDES",
+    multiplyResult.rule === "MULTIPLY_BOTH_SIDES"
+);
+
+test(
+    "Equação após multiplicação deve ter 2x no lado esquerdo",
+    multiplyResult.equation
+        .getVariableCoefficient("LEFT") === 2
+);
+
+test(
+    "Equação após multiplicação deve ter 4 como constante esquerda",
+    multiplyResult.equation
+        .getConstantValue("LEFT") === 4
+);
+
+test(
+    "Equação após multiplicação deve ter 14 no lado direito",
+    multiplyResult.equation
+        .getConstantValue("RIGHT") === 14
+);
+
+test(
+    "Solução deve continuar sendo x = 5",
+    multiplyResult.equation
+        .getSolution()
+        .value === 5
+);
+
+
+// --------------------------------------------------
+// BALANÇA — MULTIPLICAÇÃO
+//
+// A representação deve corresponder a:
+//
+// esquerda: 2x + 4
+// direita: 14
+// --------------------------------------------------
+
+const multiplyBalance =
+    multiplyResult.balance.toJSON();
+
+test(
+    "A balança deve possuir lado esquerdo",
+    Array.isArray(multiplyBalance.left)
+);
+
+test(
+    "A balança deve possuir lado direito",
+    Array.isArray(multiplyBalance.right)
+);
+
+test(
+    "A balança deve representar 2x no lado esquerdo",
+    multiplyBalance.left.some(
+        item =>
+            item.type === "x" &&
+            item.quantity === 2
+    )
+);
+
+test(
+    "A balança deve representar 4 unidades no lado esquerdo",
+    multiplyBalance.left.some(
+        item =>
+            item.type === "unit" &&
+            item.quantity === 4
+    )
+);
+
+test(
+    "A balança deve representar 14 unidades no lado direito",
+    multiplyBalance.right.some(
+        item =>
+            item.type === "unit" &&
+            item.quantity === 14
+    )
+);
+
+
+// ==================================================
+// TESTE 2
+// DIVISÃO
+//
+// 2x = 10
+// ÷ 2
+// x = 5
+// ==================================================
+
+const equationDivide =
+    new EquationModel({
+
+        left: [
+            {
+                type: "x",
+                coefficient: 2
+            }
+        ],
+
+        right: [
+            {
+                type: "constant",
+                value: 10
+            }
+        ]
+    });
+
+
+const controllerDivide =
+    new MissionEquilibrioController({
+
+        missionId:
+            "test-divide",
+
+        initialEquation:
+            equationDivide
+    });
+
+
+const divideResult =
+    controllerDivide.executeAction({
+
+        type: "divide",
+
+        divisor: 2,
+
+        sides: [
+            "left",
+            "right"
+        ]
+    });
+
+
+test(
+    "Divisão deve produzir transformação",
+    divideResult.transformation !== null
+);
+
+test(
+    "Divisão deve ser equivalente",
+    divideResult.equivalent === true
+);
+
+test(
+    "Regra deve ser DIVIDE_BOTH_SIDES",
+    divideResult.rule === "DIVIDE_BOTH_SIDES"
+);
+
+test(
+    "Equação após divisão deve ter coeficiente 1 em x",
+    divideResult.equation
+        .getVariableCoefficient("LEFT") === 1
+);
+
+test(
+    "Equação após divisão deve ter 5 no lado direito",
+    divideResult.equation
+        .getConstantValue("RIGHT") === 5
+);
+
+test(
+    "Solução deve continuar sendo x = 5",
+    divideResult.equation
+        .getSolution()
+        .value === 5
+);
+
+
+// --------------------------------------------------
+// BALANÇA — DIVISÃO
+//
+// A representação deve corresponder a:
+//
+// esquerda: x
+// direita: 5
+// --------------------------------------------------
+
+const divideBalance =
+    divideResult.balance.toJSON();
+
+test(
+    "A balança deve possuir lado esquerdo",
+    Array.isArray(divideBalance.left)
+);
+
+test(
+    "A balança deve possuir lado direito",
+    Array.isArray(divideBalance.right)
+);
+
+test(
+    "A balança deve representar x no lado esquerdo",
+    divideBalance.left.some(
+        item =>
+            item.type === "x" &&
+            item.quantity === 1
+    )
+);
+
+test(
+    "A balança deve representar 5 unidades no lado direito",
+    divideBalance.right.some(
+        item =>
+            item.type === "unit" &&
+            item.quantity === 5
+    )
+);
+
+
+// ==================================================
+// TESTE 3
+// AÇÃO PARCIAL — MULTIPLICAÇÃO
+// ==================================================
+
+const partialMultiplyController =
+    new MissionEquilibrioController({
+
+        missionId:
+            "test-partial-multiply",
+
+        initialEquation:
+            equationMultiply
+    });
+
+
+const partialMultiply =
+    partialMultiplyController.executeAction({
+
+        type: "multiply",
+
+        factor: 2,
+
+        sides: [
+            "left"
+        ]
+    });
+
+
+test(
+    "Multiplicação parcial deve ser identificada",
+    partialMultiply.structurallyComplete === false
+);
+
+test(
+    "Multiplicação parcial não deve ser equivalente",
+    partialMultiply.equivalent === false
+);
+
+test(
+    "Multiplicação parcial deve retornar unbalanced",
+    partialMultiply.result === "unbalanced"
+);
+
+test(
+    "Multiplicação parcial não deve criar transformação",
+    partialMultiply.transformation === null
+);
+
+test(
+    "Equação não deve mudar após multiplicação parcial",
+    partialMultiply.equation.toString() ===
+    equationMultiply.toString()
+);
+
+test(
+    "Solução deve continuar sendo x = 5",
+    partialMultiply.equation
+        .getSolution()
+        .value === 5
+);
+
+
+// ==================================================
+// TESTE 4
+// AÇÃO PARCIAL — DIVISÃO
+// ==================================================
+
+const partialDivideController =
+    new MissionEquilibrioController({
+
+        missionId:
+            "test-partial-divide",
+
+        initialEquation:
+            equationDivide
+    });
+
+
+const partialDivide =
+    partialDivideController.executeAction({
+
+        type: "divide",
+
+        divisor: 2,
+
+        sides: [
+            "right"
+        ]
+    });
+
+
+test(
+    "Divisão parcial deve ser identificada",
+    partialDivide.structurallyComplete === false
+);
+
+test(
+    "Divisão parcial não deve ser equivalente",
+    partialDivide.equivalent === false
+);
+
+test(
+    "Divisão parcial deve retornar unbalanced",
+    partialDivide.result === "unbalanced"
+);
+
+test(
+    "Divisão parcial não deve criar transformação",
+    partialDivide.transformation === null
+);
+
+test(
+    "Equação não deve mudar após divisão parcial",
+    partialDivide.equation.toString() ===
+    equationDivide.toString()
+);
+
+
+// ==================================================
+// TESTE 5
+// DIVISÃO POR ZERO
+// ==================================================
+
+const zeroDivideController =
+    new MissionEquilibrioController({
+
+        missionId:
+            "test-zero-divide",
+
+        initialEquation:
+            equationDivide
+    });
+
+
+expectError(
+    "Divisão por zero deve ser rejeitada",
+    () => {
+
+        zeroDivideController.executeAction({
+
+            type: "divide",
+
+            divisor: 0,
+
+            sides: [
+                "left",
+                "right"
+            ]
+        });
+
+    }
+);
+
+
+// ==================================================
+// TESTE 6
+// CADEIA
+//
+// 2x + 4 = 14
+//      ↓ −4
+// 2x = 10
+//      ↓ ÷2
+// x = 5
+// ==================================================
+
+const chainEquation =
+    new EquationModel({
+
+        left: [
+            {
+                type: "x",
+                coefficient: 2
+            },
+            {
+                type: "constant",
+                value: 4
+            }
+        ],
+
+        right: [
+            {
+                type: "constant",
+                value: 14
+            }
+        ]
+    });
+
+
+const chainController =
+    new MissionEquilibrioController({
+
+        missionId:
+            "test-chain",
+
+        initialEquation:
+            chainEquation
+    });
+
+
+const step1 =
+    chainController.executeAction({
+
+        type: "subtract",
+
+        amount: 4,
+
+        sides: [
+            "left",
+            "right"
+        ]
+    });
+
+
+const step2 =
+    chainController.executeAction({
+
+        type: "divide",
+
+        divisor: 2,
+
+        sides: [
+            "left",
+            "right"
+        ]
+    });
+
+
+test(
+    "Primeira transformação da cadeia deve ser equivalente",
+    step1.equivalent === true
+);
+
+test(
+    "Primeira transformação deve terminar em 2x = 10",
+    step1.equation.toString() === "2x = 10"
+);
+
+test(
+    "Segunda transformação deve ser equivalente",
+    step2.equivalent === true
+);
+
+test(
+    "Segunda transformação deve terminar em x = 5",
+    step2.equation.toString() === "x = 5"
+);
+
+test(
+    "A solução final deve ser x = 5",
+    step2.equation
+        .getSolution()
+        .value === 5
+);
+
+test(
+    "A transformação 2 deve começar onde a transformação 1 terminou",
+    step2.transformation.before.toString() ===
+    step1.transformation.after.toString()
+);
+
+test(
+    "O estado final do Controller deve ser x = 5",
+    chainController
+        .getCurrentEquation()
+        .toString() === "x = 5"
+);
+
+test(
+    "A missão deve possuir duas transformações",
+    chainController
+        .getState()
+        .transformations
+        .length === 2
+);
+
+test(
+    "A missão deve possuir duas ações",
+    chainController
+        .getState()
+        .actions
+        .length === 2
+);
+
+
+// ==================================================
+// TESTE 7
+// VERIFICAÇÃO FINAL DO ESTADO
+// ==================================================
+
+const finalState =
+    chainController.getState();
+
+const finalJSON =
+    chainController.toJSON();
+
+
+test(
+    "Estado deve manter missionId",
+    finalState.missionId === "test-chain"
+);
+
+test(
+    "Estado deve manter representação concrete",
+    finalState.currentRepresentation === "concrete"
+);
+
+test(
+    "Estado deve manter etapa exploration",
+    finalState.currentStage === "exploration"
+);
+
+test(
+    "Estado serializado deve conter mission",
+    finalJSON.mission !== undefined
+);
+
+test(
+    "Estado serializado deve conter balance",
+    finalJSON.balance !== undefined
+);
+
+
+// ==================================================
+// RESUMO
+// ==================================================
+
+summary.textContent =
+    `${passed}/${total} testes aprovados`;
+
+if (passed === total) {
+
+    summary.style.color =
+        "#86efac";
+
+    summary.textContent +=
+        " — MOTOR + CHASSI INTEGRADOS 🟢⚙️⚖️";
+
+} else {
+
+    summary.style.color =
+        "#fca5a5";
+
+    summary.textContent +=
+        " — existem falhas a investigar 🔴";
+}
+
+</script>
+
+</body>
+</html>

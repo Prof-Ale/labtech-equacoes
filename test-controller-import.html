@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Teste Controller</title>
+</head>
+
+<body>
+
+<h1>Teste MissionEquilibrioController</h1>
+
+<pre id="output"></pre>
+
+<script type="module">
+
+import { EquationModel }
+    from "./src/math/algebra/EquationModel.js";
+
+import { MissionEquilibrioController }
+    from "./src/engine/MissionEquilibrioController.js";
+
+
+const equation =
+    new EquationModel({
+
+        left: [
+            {
+                type: "x",
+                coefficient: 1
+            },
+            {
+                type: "constant",
+                value: 3
+            }
+        ],
+
+        right: [
+            {
+                type: "constant",
+                value: 8
+            }
+        ]
+    });
+
+
+const controller =
+    new MissionEquilibrioController({
+
+        missionId:
+            "teste-controller",
+
+        initialEquation:
+            equation
+    });
+
+
+const result =
+    controller.executeAction({
+
+        type: "subtract",
+
+        amount: 3,
+
+        sides: [
+            "left",
+            "right"
+        ]
+    });
+
+
+document.getElementById(
+    "output"
+).textContent = JSON.stringify({
+
+    equation:
+        result.equation.toString(),
+
+    equivalent:
+        result.equivalent,
+
+    result:
+        result.result,
+
+    rule:
+        result.rule,
+
+    evidence:
+        result.evidence
+
+}, null, 2);
+
+</script>
+
+</body>
+
+</html>

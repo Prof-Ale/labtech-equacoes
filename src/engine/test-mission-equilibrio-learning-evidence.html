@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Teste — Mission Equilíbrio + LearningEvidence</title>
+</head>
+
+<body>
+
+<h1>Mission Equilíbrio + LearningEvidence</h1>
+
+<div id="results"></div>
+
+<script type="module">
+
+import { EquationModel }
+    from "../math/algebra/EquationModel.js";
+
+import { MissionEquilibrioController }
+    from "./MissionEquilibrioController.js";
+
+import { LearningEvidence }
+    from "./LearningEvidence.js";
+
+
+const results = [];
+
+
+function test(name, condition) {
+
+    results.push({
+        name,
+        passed: Boolean(condition)
+    });
+}
+
+
+/* ==================================================
+ * MISSÃO
+ * ================================================== */
+
+const equation =
+    new EquationModel({
+
+        left: [
+            {
+                type: "x",
+                coefficient: 2
+            },
+            {
+                type: "constant",
+                value: 4
+            }
+        ],
+
+        right: [
+            {
+                type: "constant",
+                value: 14
+            }
+        ]
+    });
+
+
+const controller =
+    new MissionEquilibrioController({
+
+        missionId:
+            "equilibrio-evidence-01",
+
+        initialEquation:
+            equation
+    });
+
+
+/* ==================================================
+ * ESTADO INICIAL
+ * ================================================== */
+
+test(
+    "Inicia sem evidências",
+    controller.getState().evidences.length === 0
+);
+
+test(
+    "Conceito da missão é equivalence",
+    controller.concept === "equivalence"
+);
+
+
+/* ==================================================
+ * REPRESENTAÇÃO / ESTRATÉGIA / MEDIAÇÃO
+ * ================================================== */
+
+controller.setRepresentation(
+    "concrete"
+);
+
+controller.setStrategy(
+    "equilibrium_progressive"
+);
+
+controller.setMediationLevel(
+    1
+);
+
+
+/* ==================================================
+ * AÇÃO PARCIAL
+ * ================================================== */
+
+const partial =
+    controller.executeAction({
+
+        type: "subtract",
+
+        amount: 4,
+
+        sides: [
+            "left"
+        ]
+    });
+
+
+test(
+    "Ação parcial é identificada",
+    partial.structurallyComplete === false
+);
+
+test(
+    "Ação parcial não é equivalente",
+    partial.equivalent === false
+);
+
+test(
+    "Ação parcial não cria transformação",
+    partial.transformation === null
+);
+
+test(
+    "Ação parcial cria evidência",
+    partial.evidence instanceof LearningEvidence
+);
+
+test(
+    "Evidência parcial fica no estado",
+    controller.getState().evidences.length === 1
+);
+
+test(
+    "Evidência parcial registra conceito",
+    partial.evidence.concept === "equivalence"
+);
+
+test(
+    "Evidência parcial registra resultado",
+    partial.evidence.mathematicalResult ===
+        "unbalanced"
+);
+
+test(
+    "Evidência parcial registra ausência de transformação",
+    partial.evidence.transformationCreated === false
+);
+
+test(
+    "Evidência parcial registra ação unilateral",
+    partial.evidence.errorType ===
+        "unilateral_transformation"
+);
+
+test(
+    "Evidência parcial preserva representação",
+    partial.evidence.representation ===
+        "concrete"
+);
+
+test(
+    "Evidência parcial preserva estratégia",
+    partial.evidence.strategy ===
+        "equilibrium_progressive"
+);
+
+test(
+    "Evidência parcial preserva mediação",
+    partial.evidence.mediationLevel === 1
+);
+
+test(
+    "Evidência parcial registra autonomia em desenvolvimento",
+    partial.evidence.autonomy === "developing"
+);
+
+
+/* ==================================================
+ * EQUAÇÃO NÃO MUDA
+ * ================================================== */
+
+test(
+    "Ação parcial não altera equação",
+    controller.getCurrentEquation()
+        .toString() === "2x + 4 = 14"
+);
+
+
+/* ==================================================
+ * AÇÃO VÁLIDA
+ * ================================================== */
+
+const valid =
+    controller.executeAction({
+
+        type: "subtract",
+
+        amount: 4,
+
+        sides: [
+            "left",
+            "right"
+        ]
+    });
+
+
+test(
+    "Ação válida é estruturalmente completa",
+    valid.structurallyComplete === true
+);
+
+test(
+    "Ação válida é equivalente",
+    valid.equivalent === true
+);
+
+test(
+    "Ação válida cria transformação",
+    valid.transformation !== null
+);
+
+test(
+    "Ação válida cria evidência",
+    valid.evidence instanceof LearningEvidence
+);
+
+test(
+    "Estado possui duas evidências",
+    controller.getState().evidences.length === 2
+);
+
+test(
+    "Evidência válida registra resultado equivalente",
+    valid.evidence.mathematicalResult ===
+        "equivalent"
+);
+
+test(
+    "Evidência válida registra transformação criada",
+    valid.evidence.transformationCreated === true
+);
+
+test(
+    "Evidência válida preserva representação",
+    valid.evidence.representation ===
+        "concrete"
+);
+
+test(
+    "Evidência válida preserva estratégia",
+    valid.evidence.strategy ===
+        "equilibrium_progressive"
+);
+
+test(
+    "Evidência válida preserva mediação",
+    valid.evidence.mediationLevel === 1
+);
+
+test(
+    "Evidência válida registra autonomia em desenvolvimento",
+    valid.evidence.autonomy === "developing"
+);
+
+
+/* ==================================================
+ * TRANSFORMAÇÃO
+ * ================================================== */
+
+test(
+    "Equação foi transformada",
+    controller.getCurrentEquation()
+        .toString() === "2x = 10"
+);
+
+test(
+    "Solução continua sendo 5",
+    controller.checkSolution(5) === true
+);
+
+
+/* ==================================================
+ * SEGUNDA TRANSFORMAÇÃO
+ * ================================================== */
+
+controller.setMediationLevel(0);
+
+const divide =
+    controller.executeAction({
+
+        type: "divide",
+
+        divisor: 2,
+
+        sides: [
+            "left",
+            "right"
+        ]
+    });
+
+
+test(
+    "Divisão cria terceira evidência",
+    controller.getState().evidences.length === 3
+);
+
+test(
+    "Divisão cria transformação",
+    divide.transformation !== null
+);
+
+test(
+    "Divisão produz x = 5",
+    controller.getCurrentEquation()
+        .toString() === "x = 5"
+);
+
+test(
+    "Divisão registra mediação zero",
+    divide.evidence.mediationLevel === 0
+);
+
+test(
+    "Divisão registra autonomia",
+    divide.evidence.autonomy === "autonomous"
+);
+
+
+/* ==================================================
+ * TRAJETÓRIA
+ * ================================================== */
+
+const state =
+    controller.getState();
+
+
+test(
+    "Trajetória possui três ações",
+    state.actions.length === 3
+);
+
+test(
+    "Trajetória possui três evidências",
+    state.evidences.length === 3
+);
+
+test(
+    "Evidências permanecem na ordem das ações",
+
+    state.evidences[0].action.type === "subtract" &&
+    state.evidences[1].action.type === "subtract" &&
+    state.evidences[2].action.type === "divide"
+);
+
+test(
+    "Primeira evidência é unilateral",
+
+    state.evidences[0].errorType ===
+        "unilateral_transformation"
+);
+
+test(
+    "Segunda evidência é transformação equivalente",
+
+    state.evidences[1].mathematicalResult ===
+        "equivalent"
+);
+
+test(
+    "Terceira evidência registra autonomia",
+
+    state.evidences[2].autonomy ===
+        "autonomous"
+);
+
+
+/* ==================================================
+ * SERIALIZAÇÃO
+ * ================================================== */
+
+const json =
+    controller.toJSON();
+
+
+test(
+    "JSON contém evidências",
+    Array.isArray(
+        json.mission.evidences
+    )
+);
+
+test(
+    "JSON preserva três evidências",
+    json.mission.evidences.length === 3
+);
+
+test(
+    "JSON preserva conceito",
+    json.mission.evidences[0].concept ===
+        "equivalence"
+);
+
+test(
+    "JSON preserva ação",
+    json.mission.evidences[0].action.type ===
+        "subtract"
+);
+
+test(
+    "JSON preserva resultado",
+    json.mission.evidences[0].mathematicalResult ===
+        "unbalanced"
+);
+
+test(
+    "JSON preserva transformação",
+    json.mission.evidences[1].transformationCreated ===
+        true
+);
+
+
+/* ==================================================
+ * RELATÓRIO
+ * ================================================== */
+
+const passed =
+    results.filter(
+        result => result.passed
+    ).length;
+
+const total =
+    results.length;
+
+
+document.getElementById("results")
+    .innerHTML = `
+
+        <h2>
+            ${passed}/${total} testes aprovados
+        </h2>
+
+        <ul>
+
+            ${results.map(result => `
+
+                <li style="
+                    color:
+                    ${result.passed
+                        ? "green"
+                        : "red"};
+                ">
+
+                    ${result.passed
+                        ? "🟢"
+                        : "🔴"}
+
+                    ${result.name}
+
+                </li>
+
+            `).join("")}
+
+        </ul>
+    `;
+
+
+console.log(
+    `Mission Equilíbrio + LearningEvidence: ${passed}/${total}`
+);
+
+</script>
+
+</body>
+</html>

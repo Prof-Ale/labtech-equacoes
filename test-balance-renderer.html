@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Teste BalanceRenderer</title>
+
+    <style>
+        body {
+            background: #0B1F33;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 30px;
+        }
+
+        canvas {
+            display: block;
+            margin: 20px 0;
+            border: 1px solid #D4AF37;
+            background: #0B1F33;
+        }
+
+        .ok {
+            color: #4CAF50;
+        }
+
+        .fail {
+            color: #D96C4F;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>BalanceRenderer — Testes</h1>
+
+<canvas
+    id="balanceCanvas"
+    width="700"
+    height="400">
+</canvas>
+
+<div id="results"></div>
+
+<script type="module">
+
+import { EquationModel }
+    from "./src/math/algebra/EquationModel.js";
+
+import { BalanceModel }
+    from "./src/representations/balance/BalanceModel.js";
+
+import { BalanceRenderer }
+    from "./src/representations/balance/BalanceRenderer.js";
+
+
+const results = [];
+
+function test(name, fn) {
+    try {
+        fn();
+
+        results.push({
+            name,
+            ok: true
+        });
+
+    } catch (error) {
+
+        results.push({
+            name,
+            ok: false,
+            error
+        });
+    }
+}
+
+
+const canvas =
+    document.getElementById("balanceCanvas");
+
+
+// --------------------------------------------------
+// 01 — criação do renderer
+// --------------------------------------------------
+
+test("01 — cria BalanceRenderer", () => {
+
+    const renderer =
+        new BalanceRenderer(canvas);
+
+    if (!renderer) {
+        throw new Error(
+            "Renderer não foi criado."
+        );
+    }
+});
+
+
+// --------------------------------------------------
+// 02 — criação do modelo
+// --------------------------------------------------
+
+const equation =
+    EquationModel.from(
+        [
+            { type: "x", coefficient: 1 },
+            { type: "constant", value: 3 }
+        ],
+        [
+            { type: "constant", value: 8 }
+        ]
+    );
+
+const balance =
+    BalanceModel.fromEquation(equation);
+
+
+// --------------------------------------------------
+// 03 — renderização neutra
+// --------------------------------------------------
+
+test("03 — renderiza estado neutro", () => {
+
+    const renderer =
+        new BalanceRenderer(canvas);
+
+    renderer.render(balance);
+});
+
+
+// --------------------------------------------------
+// 04 — renderização equilibrada
+// --------------------------------------------------
+
+test("04 — renderiza equilíbrio", () => {
+
+    const renderer =
+        new BalanceRenderer(canvas);
+
+    renderer.render(balance, {
+        status: "balanced",
+        tilt: 0
+    });
+});
+
+
+// --------------------------------------------------
+// 05 — renderização desequilibrada
+// --------------------------------------------------
+
+test("05 — renderiza desequilíbrio", () => {
+
+    const renderer =
+        new BalanceRenderer(canvas);
+
+    renderer.render(balance, {
+        status: "unbalanced",
+        tilt: 0.08
+    });
+});
+
+
+// --------------------------------------------------
+// 06 — modelo permanece intacto
+// --------------------------------------------------
+
+test("06 — renderer não altera BalanceModel", () => {
+
+    const renderer =
+        new BalanceRenderer(canvas);
+
+    const before =
+        JSON.stringify(balance.toJSON());
+
+    renderer.render(balance, {
+        status: "balanced"
+    });
+
+    const after =
+        JSON.stringify(balance.toJSON());
+
+    if (before !== after) {
+        throw new Error(
+            "Renderer alterou o modelo."
+        );
+    }
+});
+
+
+// --------------------------------------------------
+// resultado
+// --------------------------------------------------
+
+const container =
+    document.getElementById("results");
+
+const total = results.length;
+
+const passed =
+    results.filter(
+        result => result.ok
+    ).length;
+
+container.innerHTML = `
+    <h2>
+        ${passed}/${total} testes verdes
+    </h2>
+
+    ${results.map(result => {
+
+        if (result.ok) {
+
+            return `
+                <div class="ok">
+                    ✓ ${result.name}
+                </div>
+            `;
+        }
+
+        return `
+            <div class="fail">
+                ✗ ${result.name}
+                <br>
+                ${result.error.message}
+            </div>
+        `;
+
+    }).join("")}
+`;
+
+</script>
+
+</body>
+</html>

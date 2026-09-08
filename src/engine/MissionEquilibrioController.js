@@ -15,6 +15,9 @@
  * AlgebraicSimplifier       → simplificação
  * EquationTransformation    → registro da transformação
  * BalanceModel              → representação concreta
+ * LearningEvidence          → evidência observável
+ * LearningTrajectoryAnalyzer → análise da trajetória observável
+ * VerificationEngine        → verificação matemática
  *
  * Fluxo semântico:
  *
@@ -24,19 +27,39 @@
  *              ↓
  *      regra matemática
  *              ↓
- *      transformação
- *              ↓
  *      simplificação
+ *              ↓
+ *      EquationTransformation
+ *              ↓
+ *      LearningEvidence
  *              ↓
  *      MissionState
  *              ↓
  *      BalanceModel
+ *              ↓
+ *      LearningTrajectoryAnalyzer
+ *              ↓
+ *             ADA
+ *
+ * Verificação:
+ *
+ *      solução proposta
+ *              ↓
+ *      VerificationEngine
+ *              ↓
+ *      resultado matemático
+ *              ↓
+ *      LearningEvidence
+ *              ↓
+ *      trajetória
  *
  * Importante:
  *
  * O Controller não diagnostica a intenção cognitiva
- * do estudante. Ele registra evidências da atividade
- * para que ADA possa posteriormente interpretá-las.
+ * do estudante.
+ *
+ * Ele registra fatos observáveis da atividade para
+ * que ADA possa posteriormente interpretá-los.
  */
 
 import { MissionState }
@@ -44,6 +67,12 @@ import { MissionState }
 
 import { ActionValidator }
     from "./ActionValidator.js";
+
+import { LearningEvidence }
+    from "./LearningEvidence.js";
+
+import { LearningTrajectoryAnalyzer }
+    from "../core/ada/LearningTrajectoryAnalyzer.js";
 
 import { EquivalenceRules }
     from "../math/algebra/EquivalenceRules.js";
@@ -53,6 +82,9 @@ import { AlgebraicSimplifier }
 
 import { EquationTransformation }
     from "../math/algebra/EquationTransformation.js";
+
+import { VerificationEngine }
+    from "../math/algebra/VerificationEngine.js";
 
 import { BalanceModel }
     from "../representations/balance/BalanceModel.js";
@@ -90,6 +122,15 @@ export class MissionEquilibrioController {
             BalanceModel.fromEquation(
                 initialEquation
             );
+
+        /**
+         * Conceito central da Missão Equilíbrio.
+         *
+         * O Controller identifica o domínio da missão,
+         * mas não realiza diagnóstico conceitual.
+         */
+        this.concept =
+            "equivalence";
     }
 
 
@@ -118,11 +159,13 @@ export class MissionEquilibrioController {
     /**
      * Registra uma ação do estudante.
      *
-     * Este método registra apenas a evidência
-     * da ação. Não executa nenhuma transformação.
+     * Este método registra apenas a ação.
+     * Não executa transformação matemática.
      *
      * A execução semântica deve utilizar
      * executeAction().
+     *
+     * Mantido para compatibilidade com o motor atual.
      */
     recordAction(action) {
 
@@ -131,38 +174,99 @@ export class MissionEquilibrioController {
 
 
     /**
+     * Cria e registra uma evidência observável.
+     *
+     * Responsabilidade:
+     * transformar o acontecimento da atividade
+     * em um objeto LearningEvidence.
+     *
+     * NÃO interpreta o estudante.
+     * NÃO diagnostica pseudoconceitos.
+     * NÃO decide mediação.
+     *
+     * autonomy pode ser explicitamente informado
+     * quando a natureza da evidência permitir
+     * uma classificação observável mais específica.
+     */
+    _recordEvidence({
+        action,
+        mathematicalResult,
+        transformationCreated,
+        errorType = null,
+        autonomy = null,
+        metadata = {}
+    }) {
+
+        const evidence =
+            new LearningEvidence({
+
+                missionId:
+                    this.state.missionId,
+
+                concept:
+                    this.concept,
+
+                action: {
+                    ...action
+                },
+
+                representation:
+                    this.state.currentRepresentation,
+
+                strategy:
+                    this.state.strategy,
+
+                mathematicalResult,
+
+                transformationCreated,
+
+                mediationLevel:
+                    this.state.mediationLevel,
+
+                autonomy:
+                    autonomy
+                    || (
+                        this.state.mediationLevel === 0
+                            ? "autonomous"
+                            : "developing"
+                    ),
+
+                errorType,
+
+                metadata: {
+                    ...metadata
+                }
+            });
+
+
+        this.state.recordEvidence(
+            evidence
+        );
+
+
+        return evidence.clone();
+    }
+
+
+    /**
      * Executa uma ação semântica da Missão Equilíbrio.
      *
-     * Esta é a principal porta de entrada para
-     * a futura interface do MathLab.
+     * Tipos suportados:
      *
-     * Exemplo:
-     *
-     * controller.executeAction({
-     *     type: "subtract",
-     *     amount: 4,
-     *     sides: ["left", "right"]
-     * });
-     *
-     * A ação passa por:
-     *
-     * 1. validação estrutural;
-     * 2. identificação dos lados;
-     * 3. aplicação da regra matemática;
-     * 4. simplificação;
-     * 5. criação da transformação;
-     * 6. registro no estado;
-     * 7. atualização da balança.
+     * subtract
+     * add
+     * multiply
+     * divide
      *
      * Ações parciais não alteram a equação matemática.
-     * Elas são evidências importantes para posterior
-     * interpretação pela ADA.
+     *
+     * Elas, porém, geram evidência observável
+     * para posterior interpretação pela ADA.
      */
     executeAction(action) {
 
         const validation =
             ActionValidator.validate(action);
-
 
         const normalizedAction =
             validation.action;
@@ -176,21 +280,6 @@ export class MissionEquilibrioController {
 
         if (!validation.structurallyComplete) {
 
-            /*
-             * A ação pode ser uma interação válida
-             * do estudante, mas não constitui uma
-             * transformação de equivalência.
-             *
-             * Exemplo:
-             *
-             * retirar 4 apenas do lado esquerdo.
-             *
-             * A equação matemática não é alterada.
-             *
-             * A evidência, entretanto, é registrada
-             * para que ADA possa interpretar o evento.
-             */
-
             this.state.recordAction({
 
                 ...normalizedAction,
@@ -201,6 +290,37 @@ export class MissionEquilibrioController {
                 equivalent:
                     false
             });
+
+
+            const evidence =
+                this._recordEvidence({
+
+                    action:
+                        normalizedAction,
+
+                    mathematicalResult:
+                        "unbalanced",
+
+                    transformationCreated:
+                        false,
+
+                    errorType:
+                        "unilateral_transformation",
+
+                    metadata: {
+
+                        currentEquation:
+                            this.state.currentEquation
+                                .toString(),
+
+                        sides:
+                            normalizedAction.sides
+                                ? [
+                                    ...normalizedAction.sides
+                                ]
+                                : []
+                    }
+                });
 
 
             return {
@@ -227,7 +347,9 @@ export class MissionEquilibrioController {
                     this.getBalance(),
 
                 rule:
-                    null
+                    null,
+
+                evidence
             };
         }
 
@@ -256,6 +378,22 @@ export class MissionEquilibrioController {
                 );
 
 
+            case "multiply":
+
+                return this.multiplyBothSides(
+                    normalizedAction.factor,
+                    normalizedAction
+                );
+
+
+            case "divide":
+
+                return this.divideBothSides(
+                    normalizedAction.divisor,
+                    normalizedAction
+                );
+
+
             default:
 
                 throw new Error(
@@ -268,15 +406,6 @@ export class MissionEquilibrioController {
     /**
      * Subtrai a mesma quantidade
      * dos dois lados da equação.
-     *
-     * Este método representa a operação matemática.
-     *
-     * O parâmetro actionOverride existe para permitir
-     * que executeAction() preserve exatamente a ação
-     * validada pelo ActionValidator.
-     *
-     * Quando chamado diretamente, o método cria
-     * sua própria ação semântica.
      */
     subtractFromBothSides(
         amount,
@@ -329,14 +458,6 @@ export class MissionEquilibrioController {
             });
 
 
-        /*
-         * A ação é registrada exatamente uma vez.
-         *
-         * Isso corrige a duplicação existente quando
-         * recordAction() era chamado antes de
-         * subtractFromBothSides().
-         */
-
         this.state.recordAction({
 
             ...action,
@@ -360,6 +481,33 @@ export class MissionEquilibrioController {
             BalanceModel.fromEquation(
                 after
             );
+
+
+        const evidence =
+            this._recordEvidence({
+
+                action,
+
+                mathematicalResult:
+                    resultado.equivalent
+                        ? "equivalent"
+                        : "unbalanced",
+
+                transformationCreated:
+                    true,
+
+                metadata: {
+
+                    before:
+                        before.toString(),
+
+                    after:
+                        after.toString(),
+
+                    rule:
+                        resultado.rule
+                }
+            });
 
 
         return {
@@ -388,7 +536,9 @@ export class MissionEquilibrioController {
                     : "unbalanced",
 
             rule:
-                resultado.rule
+                resultado.rule,
+
+            evidence
         };
     }
 
@@ -396,8 +546,6 @@ export class MissionEquilibrioController {
     /**
      * Adiciona a mesma quantidade
      * aos dois lados da equação.
-     *
-     * Este método representa a operação matemática.
      */
     addToBothSides(
         amount,
@@ -450,10 +598,6 @@ export class MissionEquilibrioController {
             });
 
 
-        /*
-         * Ação registrada uma única vez.
-         */
-
         this.state.recordAction({
 
             ...action,
@@ -477,6 +621,33 @@ export class MissionEquilibrioController {
             BalanceModel.fromEquation(
                 after
             );
+
+
+        const evidence =
+            this._recordEvidence({
+
+                action,
+
+                mathematicalResult:
+                    resultado.equivalent
+                        ? "equivalent"
+                        : "unbalanced",
+
+                transformationCreated:
+                    true,
+
+                metadata: {
+
+                    before:
+                        before.toString(),
+
+                    after:
+                        after.toString(),
+
+                    rule:
+                        resultado.rule
+                }
+            });
 
 
         return {
@@ -505,20 +676,433 @@ export class MissionEquilibrioController {
                     : "unbalanced",
 
             rule:
-                resultado.rule
+                resultado.rule,
+
+            evidence
+        };
+    }
+
+
+    /**
+     * Multiplica os dois lados da equação
+     * pelo mesmo fator.
+     */
+    multiplyBothSides(
+        factor,
+        actionOverride = null
+    ) {
+
+        const before =
+            this.state.currentEquation.clone();
+
+
+        const resultado =
+            EquivalenceRules.multiplyBothSides(
+                before,
+                factor
+            );
+
+
+        const after =
+            AlgebraicSimplifier.simplifyEquation(
+                resultado.equation
+            );
+
+
+        const action =
+            actionOverride
+            || {
+                type: "multiply",
+                factor,
+                sides: [
+                    "left",
+                    "right"
+                ]
+            };
+
+
+        const transformation =
+            new EquationTransformation({
+
+                before,
+
+                action,
+
+                after,
+
+                equivalent:
+                    resultado.equivalent,
+
+                rule:
+                    resultado.rule
+            });
+
+
+        this.state.recordAction({
+
+            ...action,
+
+            result:
+                resultado.equivalent
+                    ? "balanced"
+                    : "unbalanced",
+
+            equivalent:
+                resultado.equivalent
+        });
+
+
+        this.state.recordTransformation(
+            transformation
+        );
+
+
+        this.balance =
+            BalanceModel.fromEquation(
+                after
+            );
+
+
+        const evidence =
+            this._recordEvidence({
+
+                action,
+
+                mathematicalResult:
+                    resultado.equivalent
+                        ? "equivalent"
+                        : "unbalanced",
+
+                transformationCreated:
+                    true,
+
+                metadata: {
+
+                    before:
+                        before.toString(),
+
+                    after:
+                        after.toString(),
+
+                    rule:
+                        resultado.rule
+                }
+            });
+
+
+        return {
+
+            action:
+                { ...action },
+
+            structurallyComplete:
+                true,
+
+            transformation:
+                transformation.clone(),
+
+            equation:
+                after.clone(),
+
+            balance:
+                this.balance.clone(),
+
+            equivalent:
+                resultado.equivalent,
+
+            result:
+                resultado.equivalent
+                    ? "balanced"
+                    : "unbalanced",
+
+            rule:
+                resultado.rule,
+
+            evidence
+        };
+    }
+
+
+    /**
+     * Divide os dois lados da equação
+     * pelo mesmo divisor.
+     *
+     * A proteção contra divisão por zero
+     * pertence à EquivalenceRules.
+     */
+    divideBothSides(
+        divisor,
+        actionOverride = null
+    ) {
+
+        const before =
+            this.state.currentEquation.clone();
+
+
+        const resultado =
+            EquivalenceRules.divideBothSides(
+                before,
+                divisor
+            );
+
+
+        const after =
+            AlgebraicSimplifier.simplifyEquation(
+                resultado.equation
+            );
+
+
+        const action =
+            actionOverride
+            || {
+                type: "divide",
+                divisor,
+                sides: [
+                    "left",
+                    "right"
+                ]
+            };
+
+
+        const transformation =
+            new EquationTransformation({
+
+                before,
+
+                action,
+
+                after,
+
+                equivalent:
+                    resultado.equivalent,
+
+                rule:
+                    resultado.rule
+            });
+
+
+        this.state.recordAction({
+
+            ...action,
+
+            result:
+                resultado.equivalent
+                    ? "balanced"
+                    : "unbalanced",
+
+            equivalent:
+                resultado.equivalent
+        });
+
+
+        this.state.recordTransformation(
+            transformation
+        );
+
+
+        this.balance =
+            BalanceModel.fromEquation(
+                after
+            );
+
+
+        const evidence =
+            this._recordEvidence({
+
+                action,
+
+                mathematicalResult:
+                    resultado.equivalent
+                        ? "equivalent"
+                        : "unbalanced",
+
+                transformationCreated:
+                    true,
+
+                metadata: {
+
+                    before:
+                        before.toString(),
+
+                    after:
+                        after.toString(),
+
+                    rule:
+                        resultado.rule
+                }
+            });
+
+
+        return {
+
+            action:
+                { ...action },
+
+            structurallyComplete:
+                true,
+
+            transformation:
+                transformation.clone(),
+
+            equation:
+                after.clone(),
+
+            balance:
+                this.balance.clone(),
+
+            equivalent:
+                resultado.equivalent,
+
+            result:
+                resultado.equivalent
+                    ? "balanced"
+                    : "unbalanced",
+
+            rule:
+                resultado.rule,
+
+            evidence
+        };
+    }
+
+
+    /**
+     * Verifica uma solução proposta para a equação atual.
+     *
+     * Diferentemente de uma transformação,
+     * a verificação NÃO modifica a equação.
+     *
+     * Ela produz uma evidência observável sobre
+     * a capacidade do estudante de testar uma solução.
+     *
+     * Exemplo:
+     *
+     *     x = 6
+     *
+     *     verificar 6
+     *
+     *     2(6) + 7 = 19
+     *     19 = 19
+     *
+     * A verificação pode constituir evidência
+     * de autonomia quando realizada com
+     * mediação nível 0.
+     */
+    verifySolution(value) {
+
+        const equation =
+            this.state.currentEquation.clone();
+
+
+        const verification =
+            VerificationEngine.verify(
+                equation,
+                value
+            );
+
+
+        const action = {
+
+            type:
+                "verify",
+
+            value,
+
+            sides: [
+                "left",
+                "right"
+            ]
+        };
+
+
+        const mathematicalResult =
+            verification.verified
+                ? "verified"
+                : "not_verified";
+
+
+        this.state.recordAction({
+
+            ...action,
+
+            result:
+                mathematicalResult,
+
+            verified:
+                verification.verified
+        });
+
+
+        const evidence =
+            this._recordEvidence({
+
+                action,
+
+                mathematicalResult,
+
+                transformationCreated:
+                    false,
+
+                errorType:
+                    verification.verified
+                        ? null
+                        : "verification_failed",
+
+                autonomy:
+                    verification.verified &&
+                    this.state.mediationLevel === 0
+                        ? "autonomous"
+                        : (
+                            this.state.mediationLevel === 0
+                                ? "developing"
+                                : "developing"
+                        ),
+
+                metadata: {
+
+                    equation:
+                        equation.toString(),
+
+                    value,
+
+                    left:
+                        verification.left,
+
+                    right:
+                        verification.right,
+
+                    verified:
+                        verification.verified
+                }
+            });
+
+
+        return {
+
+            action:
+                { ...action },
+
+            verification,
+
+            equation:
+                equation.clone(),
+
+            transformation:
+                null,
+
+            equivalent:
+                verification.verified,
+
+            result:
+                mathematicalResult,
+
+            evidence
         };
     }
 
 
     /**
      * Define a representação atual.
-     *
-     * Exemplos:
-     *
-     * concrete
-     * visual
-     * textual
-     * symbolic
      */
     setRepresentation(representation) {
 
@@ -530,17 +1114,12 @@ export class MissionEquilibrioController {
 
     /**
      * Define a etapa da missão.
-     *
-     * Exemplos:
-     *
-     * exploration
-     * transformation
-     * verification
-     * generalization
      */
     setStage(stage) {
 
-        this.state.setStage(stage);
+        this.state.setStage(
+            stage
+        );
     }
 
 
@@ -576,8 +1155,36 @@ export class MissionEquilibrioController {
 
 
     /**
+     * Analisa os padrões observáveis
+     * da trajetória de aprendizagem.
+     *
+     * O Controller apenas encaminha as evidências
+     * para o LearningTrajectoryAnalyzer.
+     *
+     * Não realiza diagnóstico.
+     * Não interpreta consolidação conceitual.
+     * Não decide mediação.
+     *
+     * Essas responsabilidades permanecem
+     * na camada ADA.
+     */
+    getTrajectoryAnalysis() {
+
+        return LearningTrajectoryAnalyzer.analyze(
+            this.state.evidences
+        );
+    }
+
+
+    /**
      * Verifica se determinado valor
      * satisfaz a equação atual.
+     *
+     * Método legado/consulta rápida.
+     *
+     * Não registra evidência.
+     * Para uma verificação pedagógica observável,
+     * utilizar verifySolution().
      */
     checkSolution(value) {
 

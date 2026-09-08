@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>
+        Teste — Missão Equilíbrio + Trajectory Analyzer
+    </title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #111827;
+            color: white;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #f2c14e;
+        }
+
+        .test {
+            padding: 10px;
+            margin: 6px 0;
+            border-radius: 6px;
+        }
+
+        .ok {
+            background: #14532d;
+        }
+
+        .fail {
+            background: #7f1d1d;
+        }
+
+        .summary {
+            margin-top: 30px;
+            padding: 15px;
+            background: #1f2937;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        pre {
+            background: #030712;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<h1>
+    ⚙️⚖️📊 Motor + Chassi + Trajetória
+</h1>
+
+<p>
+    Teste integrado da Missão Equilíbrio
+    com análise da trajetória de aprendizagem.
+</p>
+
+<div id="results"></div>
+
+<div id="summary" class="summary"></div>
+
+<pre id="analysis"></pre>
+
+
+<script type="module">
+
+import { EquationModel }
+    from "../math/algebra/EquationModel.js";
+
+import { MissionEquilibrioController }
+    from "./MissionEquilibrioController.js";
+
+
+const results =
+    document.getElementById("results");
+
+const summary =
+    document.getElementById("summary");
+
+const analysisElement =
+    document.getElementById("analysis");
+
+
+let total = 0;
+let passed = 0;
+
+
+function test(name, condition) {
+
+    total++;
+
+    if (condition) {
+        passed++;
+    }
+
+    const div =
+        document.createElement("div");
+
+    div.className =
+        "test " +
+        (condition ? "ok" : "fail");
+
+    div.textContent =
+        (condition ? "🟢 " : "🔴 ") +
+        name;
+
+    results.appendChild(div);
+}
+
+
+function assert(condition, message) {
+
+    if (!condition) {
+        throw new Error(message);
+    }
+}
+
+
+/* =========================================================
+   EQUAÇÃO
+   2x + 7 = 19
+========================================================= */
+
+const equation =
+    new EquationModel({
+
+        left: [
+
+            {
+                type: "x",
+                coefficient: 2
+            },
+
+            {
+                type: "constant",
+                value: 7
+            }
+
+        ],
+
+        right: [
+
+            {
+                type: "constant",
+                value: 19
+            }
+
+        ]
+
+    });
+
+
+/* =========================================================
+   CONTROLLER
+========================================================= */
+
+const controller =
+    new MissionEquilibrioController({
+
+        missionId:
+            "trajectory-analysis-test",
+
+        initialEquation:
+            equation
+
+    });
+
+
+/* =========================================================
+   CONFIGURAÇÃO PEDAGÓGICA
+========================================================= */
+
+controller.setRepresentation("concrete");
+
+controller.setStrategy(
+    "same_operation_both_sides"
+);
+
+controller.setMediationLevel(2);
+
+
+/* =========================================================
+   AÇÃO 1
+   2x + 7 = 19
+   retirar 7
+   2x = 12
+========================================================= */
+
+const firstAction =
+    controller.executeAction({
+
+        type: "subtract",
+
+        amount: 7,
+
+        sides: [
+            "left",
+            "right"
+        ]
+
+    });
+
+
+test(
+    "01 — primeira transformação foi criada",
+    firstAction.transformation !== null
+);
+
+test(
+    "02 — primeira transformação é equivalente",
+    firstAction.equivalent === true
+);
+
+
+/* =========================================================
+   SEGUNDA ETAPA
+========================================================= */
+
+controller.setRepresentation("visual");
+
+controller.setMediationLevel(1);
+
+
+/* =========================================================
+   AÇÃO 2
+   2x = 12
+   dividir por 2
+   x = 6
+========================================================= */
+
+const secondAction =
+    controller.executeAction({
+
+        type: "divide",
+
+        divisor: 2,
+
+        sides: [
+            "left",
+            "right"
+        ]
+
+    });
+
+
+test(
+    "03 — segunda transformação foi criada",
+    secondAction.transformation !== null
+);
+
+test(
+    "04 — segunda transformação é equivalente",
+    secondAction.equivalent === true
+);
+
+
+/* =========================================================
+   ETAPA FINAL
+========================================================= */
+
+controller.setRepresentation("symbolic");
+
+controller.setMediationLevel(0);
+
+
+/* =========================================================
+   VERIFICAÇÃO DA SOLUÇÃO
+========================================================= */
+
+const verification =
+    controller.verifySolution(6);
+
+
+test(
+    "05 — solução x = 6 foi verificada",
+    verification.verification.verified === true
+);
+
+
+/* =========================================================
+   ANÁLISE
+========================================================= */
+
+const analysis =
+    controller.getTrajectoryAnalysis();
+
+
+analysisElement.textContent =
+    JSON.stringify(
+        analysis,
+        null,
+        2
+    );
+
+
+/* =========================================================
+   TESTES DA TRAJETÓRIA
+========================================================= */
+
+test(
+    "06 — Analyzer contabiliza 3 evidências",
+    analysis.totalEvidence === 3
+);
+
+test(
+    "07 — identifica 2 transformações equivalentes",
+    analysis.equivalentTransformations === 2
+);
+
+test(
+    "08 — não identifica transformação unilateral",
+    analysis.unilateralTransformations === 0
+);
+
+test(
+    "09 — identifica redução de mediação",
+    analysis.mediationReduction === true
+);
+
+test(
+    "10 — identifica progressão para autonomia",
+    analysis.autonomyProgression === true
+);
+
+test(
+    "11 — identifica progressão representacional",
+    analysis.representationProgression === true
+);
+
+test(
+    "12 — identifica consistência da estratégia",
+    analysis.strategyConsistency === true
+);
+
+
+/* =========================================================
+   VERIFICAÇÃO DO ESTADO DA EQUAÇÃO
+========================================================= */
+
+const finalEquation =
+    controller.getCurrentEquation();
+
+
+test(
+    "13 — equação final possui solução x = 6",
+    finalEquation.isSolution(6) === true
+);
+
+
+/* =========================================================
+   VERIFICAÇÃO DA TRAJETÓRIA
+========================================================= */
+
+const state =
+    controller.getState();
+
+
+test(
+    "14 — estado possui 2 ações de transformação",
+    state.actions.length === 3
+);
+
+test(
+    "15 — estado possui 3 evidências",
+    state.evidences.length === 3
+);
+
+
+/* =========================================================
+   RESULTADO
+========================================================= */
+
+summary.innerHTML = `
+    <strong style="color:${
+        passed === total
+            ? "#62d98b"
+            : "#ff7b72"
+    }">
+
+        ${passed}/${total} testes verdes
+
+    </strong>
+`;
+
+console.log(
+    "MissionEquilibrio + TrajectoryAnalyzer:",
+    `${passed}/${total}`
+);
+
+</script>
+
+</body>
+
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>MathLab — Missão Equilíbrio</title>
+</head>
+
+<body>
+
+    <main id="app"></main>
+
+    <script type="module">
+
+        import { EquationModel }
+            from "./src/math/algebra/EquationModel.js";
+
+        import { MissionEquilibrioController }
+    from "./src/engine/MissionEquilibrioController.js";
+
+        import { MissionEquilibrioView }
+    from "./src/missions/equilibrio/MissionEquilibrioView.js";
+
+
+        const equation =
+    EquationModel.from({
+
+        left: [
+            {
+                type: "x",
+                coefficient: 1
+            },
+            {
+                type: "constant",
+                value: 3
+            }
+        ],
+
+        right: [
+            {
+                type: "constant",
+                value: 8
+            }
+        ]
+    });
+
+
+        const controller =
+    new MissionEquilibrioController({
+
+        missionId:
+            "missao-equilibrio-01",
+
+        initialEquation:
+            equation
+    });
+
+
+        new MissionEquilibrioView(
+            document.getElementById("app"),
+            controller
+        );
+
+    </script>
+
+</body>
+
+</html>

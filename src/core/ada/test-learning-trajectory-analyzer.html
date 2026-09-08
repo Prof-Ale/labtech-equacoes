@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Teste — LearningTrajectoryAnalyzer</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0b1f33;
+            color: #fff;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #d4af37;
+        }
+
+        .summary {
+            margin: 20px 0;
+            padding: 15px;
+            background: #132d46;
+            border-radius: 8px;
+            font-size: 20px;
+        }
+
+        .pass {
+            color: #62d98b;
+        }
+
+        .fail {
+            color: #ff7b72;
+        }
+
+        pre {
+            background: #071522;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>LearningTrajectoryAnalyzer — Testes</h1>
+
+<div id="summary" class="summary">
+    Executando testes...
+</div>
+
+<pre id="output"></pre>
+
+<script type="module">
+
+import { LearningEvidence }
+    from "../../engine/LearningEvidence.js";
+
+import { LearningTrajectoryAnalyzer }
+    from "./LearningTrajectoryAnalyzer.js";
+
+
+const output = document.getElementById("output");
+const summary = document.getElementById("summary");
+
+let passed = 0;
+let failed = 0;
+
+function test(name, callback) {
+
+    try {
+
+        callback();
+
+        passed++;
+
+        output.innerHTML +=
+            `✅ ${name}\n`;
+
+    } catch (error) {
+
+        failed++;
+
+        output.innerHTML +=
+            `❌ ${name}\n   ${error.message}\n`;
+    }
+}
+
+
+function assert(condition, message) {
+
+    if (!condition) {
+        throw new Error(message);
+    }
+}
+
+
+function createEvidence({
+    mediationLevel = 0,
+    representation = "concrete",
+    strategy = "same_operation_both_sides",
+    mathematicalResult = "equivalent",
+    transformationCreated = true,
+    errorType = null
+} = {}) {
+
+    return new LearningEvidence({
+
+        missionId: "missao-equilibrio-01",
+
+        concept: "equivalence",
+
+        action: {
+            type: "transform"
+        },
+
+        representation,
+
+        strategy,
+
+        mathematicalResult,
+
+        transformationCreated,
+
+        mediationLevel,
+
+        autonomy:
+            mediationLevel === 0
+                ? "autonomous"
+                : "developing",
+
+        errorType,
+
+        metadata: {}
+    });
+}
+
+
+/* =========================================================
+   01 — trajetória vazia
+========================================================= */
+
+test(
+    "01 — trajetória vazia retorna estrutura válida",
+    () => {
+
+        const result =
+            LearningTrajectoryAnalyzer.analyze([]);
+
+        assert(
+            result.totalEvidence === 0,
+            "totalEvidence deveria ser 0."
+        );
+
+        assert(
+            result.equivalentTransformations === 0,
+            "Não deveria haver transformações equivalentes."
+        );
+
+        assert(
+            result.unilateralTransformations === 0,
+            "Não deveria haver transformações unilaterais."
+        );
+
+        assert(
+            result.mediationReduction === false,
+            "Não deveria haver redução de mediação."
+        );
+
+        assert(
+            result.autonomyProgression === false,
+            "Não deveria haver progressão de autonomia."
+        );
+
+        assert(
+            result.representationProgression === false,
+            "Não deveria haver progressão representacional."
+        );
+
+        assert(
+            result.strategyConsistency === true,
+            "Estratégia vazia deve ser considerada consistente."
+        );
+    }
+);
+
+
+/* =========================================================
+   02 — contagem total
+========================================================= */
+
+test(
+    "02 — conta corretamente as evidências",
+    () => {
+
+        const evidences = [
+            createEvidence(),
+            createEvidence(),
+            createEvidence()
+        ];
+
+        const result =
+            LearningTrajectoryAnalyzer.analyze(evidences);
+
+        assert(
+            result.totalEvidence === 3,
+            "Deveria haver 3 evidências."
+        );
+    }
+);
+
+
+/* =========================================================
+   03 — transformações equivalentes
+========================================================= */
+
+test(
+    "03 — identifica transformações equivalentes",
+    () => {
+
+        const evidences = [
+
+            createEvidence({
+                mathematicalResult: "equivalent",
+                transformationCreated: true
+            }),
+
+            createEvidence({
+                mathematicalResult: "equivalent",
+                transformationCreated: true
+            }),
+
+            createEvidence({
+                mathematicalResult: "unbalanced",
+                transformationCreated: false
+            })
+        ];
+
+        const result =
+            LearningTrajectoryAnalyzer.analyze(evidences);
+
+        assert(
+            result.equivalentTransformations === 2,
+            "Deveria identificar 2 transformações equivalentes."
+        );
+    }
+);
+
+
+/* =========================================================
+   04 — transformação unilateral
+========================================================= */
+
+test(
+    "04 — identifica transformação unilateral",
+    () => {
+
+        const evidences = [
+
+            createEvidence({
+                mathematicalResult: "unbalanced",
+                transformationCreated: false,
+                errorType: "unilateral_transformation"
+            })
+        ];
+
+        const result =
+            LearningTrajectoryAnalyzer.analyze(evidences);
+
+        assert(
+            result.unilateralTransformations === 1,
+            "Deveria identificar 1 transformação unilateral."
+        );
+    }
+);
+
+
+/* =========================================================
+   05 — redução de mediação
+========================================================= */
+
+test(
+    "05 — identifica redução de mediação",
+    () => {
+
+        const evidences = [
+
+            createEvidence({
+                mediationLevel: 2
+            }),
+
+            createEvidence({
+                mediationLevel: 1
+            }),
+
+            createEvidence({
+                mediationLevel: 0
+            })
+        ];
+
+        const result =
+            LearningTrajectoryAnalyzer.analyze(evidences);
+
+        assert(
+            result.mediationReduction === true,
+            "Deveria identificar redução de mediação."
+        );
+    }
+);
+
+
+/* =========================================================
+   06 — progressão de autonomia
+========================================================= */
+
+test(
+    "06 — identifica progressão para autonomia",
+    () => {
+
+        const evidences = [
+
+            createEvidence({
+                mediationLevel: 2
+            }),
+
+            createEvidence({
+                mediationLevel: 1
+            }),
+
+            createEvidence({
+                mediationLevel: 0
+            })
+        ];
+
+        const result =
+            LearningTrajectoryAnalyzer.analyze(evidences);
+
+        assert(
+            result.autonomyProgression === true,
+            "Deveria identificar progressão para autonomia."
+        );
+    }
+);
+
+
+/* =========================================================
+   07 — sem progressão de autonomia
+========================================================= */
+
+test(
+    "07 — não identifica autonomia quando mediação permanece",
+    () => {
+
+        const evidences = [
+
+            createEvidence({
+                mediationLevel: 2
+            }),
+
+            createEvidence({
+                mediationLevel: 2
+            })
+        ];
+
+        const result =
+            LearningTrajectoryAnalyzer.analyze(evidences);
+
+        assert(
+            result.autonomyProgression === false,
+            "Não deveria indicar autonomia."
+        );
+
+        assert(
+            result.mediationReduction === false,
+            "Não deveria indicar redução de mediação."
+        );
+    }
+);
+
+
+/* =========================================================
+   08 — progressão representacional
+========================================================= */
+
+test(
+    "08 — identifica progressão concreta → visual → simbólica",
+    () => {
+
+        const evidences = [
+
+            createEvidence({
+                representation: "concrete"
+            }),
+
+            createEvidence({
+                representation: "visual"
+            }),
+
+            createEvidence({
+                representation: "symbolic"
+            })
+        ];
+
+        const result =
+            LearningTrajectoryAnalyzer.analyze(evidences);
+
+        assert(
+            result.representationProgression === true,
+            "Deveria identificar progressão representacional."
+        );
+    }
+);
+
+
+/* =========================================================
+   09 — ausência de progressão representacional
+========================================================= */
+
+test(
+    "09 — não identifica progressão quando representação permanece",
+    () => {
+
+        const evidences = [
+
+            createEvidence({
+                representation: "concrete"
+            }),
+
+            createEvidence({
+                representation: "concrete"
+            })
+        ];
+
+        const result =
+            LearningTrajectoryAnalyzer.analyze(evidences);
+
+        assert(
+            result.representationProgression === false,
+            "Não deveria identificar progressão."
+        );
+    }
+);
+
+
+/* =========================================================
+   10 — estratégias consistentes
+========================================================= */
+
+test(
+    "10 — identifica consistência de estratégia",
+    () => {
+
+        const evidences = [
+
+            createEvidence({
+                strategy: "same_operation_both_sides"
+            }),
+
+            createEvidence({
+                strategy: "same_operation_both_sides"
+            }),
+
+            createEvidence({
+                strategy: "same_operation_both_sides"
+            })
+        ];
+
+        const result =
+            LearningTrajectoryAnalyzer.analyze(evidences);
+
+        assert(
+            result.strategyConsistency === true,
+            "Estratégia deveria ser consistente."
+        );
+    }
+);
+
+
+/* =========================================================
+   11 — estratégias diferentes
+========================================================= */
+
+test(
+    "11 — identifica mudança de estratégia",
+    () => {
+
+        const evidences = [
+
+            createEvidence({
+                strategy: "same_operation_both_sides"
+            }),
+
+            createEvidence({
+                strategy: "isolate_unknown"
+            })
+        ];
+
+        const result =
+            LearningTrajectoryAnalyzer.analyze(evidences);
+
+        assert(
+            result.strategyConsistency === false,
+            "Estratégias diferentes não deveriam ser consideradas consistentes."
+        );
+    }
+);
+
+
+/* =========================================================
+   12 — estratégia ausente
+========================================================= */
+
+test(
+    "12 — ignora estratégias ausentes na análise",
+    () => {
+
+        const evidences = [
+
+            createEvidence({
+                strategy: null
+            }),
+
+            createEvidence({
+                strategy: "same_operation_both_sides"
+            }),
+
+            createEvidence({
+                strategy: "same_operation_both_sides"
+            })
+        ];
+
+        const result =
+            LearningTrajectoryAnalyzer.analyze(evidences);
+
+        assert(
+            result.strategyConsistency === true,
+            "Estratégias ausentes não deveriam quebrar a análise."
+        );
+    }
+);
+
+
+/* =========================================================
+   13 — trajetória integrada
+========================================================= */
+
+test(
+    "13 — analisa uma trajetória completa de aprendizagem",
+    () => {
+
+        const evidences = [
+
+            createEvidence({
+                mediationLevel: 2,
+                representation: "concrete",
+                mathematicalResult: "unbalanced",
+                transformationCreated: false,
+                errorType: "unilateral_transformation"
+            }),
+
+            createEvidence({
+                mediationLevel: 1,
+                representation: "visual",
+                mathematicalResult: "equivalent",
+                transformationCreated: true
+            }),
+
+            createEvidence({
+                mediationLevel: 0,
+                representation: "symbolic",
+                mathematicalResult: "equivalent",
+                transformationCreated: true
+            })
+        ];
+
+        const result =
+            LearningTrajectoryAnalyzer.analyze(evidences);
+
+        assert(
+            result.totalEvidence === 3,
+            "A trajetória deveria possuir 3 evidências."
+        );
+
+        assert(
+            result.equivalentTransformations === 2,
+            "Deveria haver 2 transformações equivalentes."
+        );
+
+        assert(
+            result.unilateralTransformations === 1,
+            "Deveria haver 1 transformação unilateral."
+        );
+
+        assert(
+            result.mediationReduction === true,
+            "Deveria haver redução de mediação."
+        );
+
+        assert(
+            result.autonomyProgression === true,
+            "Deveria haver progressão para autonomia."
+        );
+
+        assert(
+            result.representationProgression === true,
+            "Deveria haver progressão representacional."
+        );
+
+        assert(
+            result.strategyConsistency === true,
+            "A estratégia deveria permanecer consistente."
+        );
+    }
+);
+
+
+/* =========================================================
+   RESULTADO
+========================================================= */
+
+summary.innerHTML = `
+    <strong class="${failed === 0 ? "pass" : "fail"}">
+        ${passed}/${passed + failed} testes verdes
+    </strong>
+`;
+
+console.log(
+    "LearningTrajectoryAnalyzer:",
+    `${passed}/${passed + failed} testes`
+);
+
+</script>
+
+</body>
+</html>

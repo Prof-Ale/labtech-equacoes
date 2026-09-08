@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Teste — ActionValidator Multiply/Divide</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #111827;
+            color: white;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #f2c14e;
+        }
+
+        .test {
+            padding: 10px;
+            margin: 6px 0;
+            border-radius: 6px;
+        }
+
+        .ok {
+            background: #14532d;
+        }
+
+        .fail {
+            background: #7f1d1d;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>ActionValidator — Multiply / Divide</h1>
+
+<div id="results"></div>
+
+<script type="module">
+
+import { ActionValidator }
+    from "./ActionValidator.js";
+
+const results = document.getElementById("results");
+
+function test(name, condition) {
+
+    const div = document.createElement("div");
+
+    div.className =
+        "test " + (condition ? "ok" : "fail");
+
+    div.textContent =
+        (condition ? "🟢 " : "🔴 ") + name;
+
+    results.appendChild(div);
+}
+
+function expectError(name, fn) {
+
+    let error = false;
+
+    try {
+        fn();
+    } catch {
+        error = true;
+    }
+
+    test(name, error);
+}
+
+
+// --------------------------------------------------
+// MULTIPLY
+// --------------------------------------------------
+
+const multiplyComplete =
+    ActionValidator.validate({
+        type: "multiply",
+        factor: 2,
+        sides: ["left", "right"]
+    });
+
+test(
+    "Multiply completo deve ser válido",
+    multiplyComplete.valid === true
+);
+
+test(
+    "Multiply completo deve reconhecer os dois lados",
+    multiplyComplete.structurallyComplete === true
+);
+
+test(
+    "Multiply completo deve retornar both_sides",
+    multiplyComplete.result === "both_sides"
+);
+
+test(
+    "Tipo multiply deve ser preservado",
+    multiplyComplete.action.type === "multiply"
+);
+
+test(
+    "Factor deve ser preservado",
+    multiplyComplete.action.factor === 2
+);
+
+
+// --------------------------------------------------
+// MULTIPLY PARCIAL
+// --------------------------------------------------
+
+const multiplyPartial =
+    ActionValidator.validate({
+        type: "multiply",
+        factor: 2,
+        sides: ["left"]
+    });
+
+test(
+    "Multiply parcial deve continuar válido estruturalmente",
+    multiplyPartial.valid === true
+);
+
+test(
+    "Multiply parcial não deve ser completo",
+    multiplyPartial.structurallyComplete === false
+);
+
+test(
+    "Multiply parcial deve retornar partial_side",
+    multiplyPartial.result === "partial_side"
+);
+
+
+// --------------------------------------------------
+// DIVIDE
+// --------------------------------------------------
+
+const divideComplete =
+    ActionValidator.validate({
+        type: "divide",
+        divisor: 2,
+        sides: ["left", "right"]
+    });
+
+test(
+    "Divide completo deve ser válido",
+    divideComplete.valid === true
+);
+
+test(
+    "Divide completo deve reconhecer os dois lados",
+    divideComplete.structurallyComplete === true
+);
+
+test(
+    "Divide completo deve retornar both_sides",
+    divideComplete.result === "both_sides"
+);
+
+test(
+    "Tipo divide deve ser preservado",
+    divideComplete.action.type === "divide"
+);
+
+test(
+    "Divisor deve ser preservado",
+    divideComplete.action.divisor === 2
+);
+
+
+// --------------------------------------------------
+// DIVIDE PARCIAL
+// --------------------------------------------------
+
+const dividePartial =
+    ActionValidator.validate({
+        type: "divide",
+        divisor: 2,
+        sides: ["right"]
+    });
+
+test(
+    "Divide parcial deve continuar válido estruturalmente",
+    dividePartial.valid === true
+);
+
+test(
+    "Divide parcial não deve ser completo",
+    dividePartial.structurallyComplete === false
+);
+
+test(
+    "Divide parcial deve retornar partial_side",
+    dividePartial.result === "partial_side"
+);
+
+
+// --------------------------------------------------
+// NORMALIZAÇÃO
+// --------------------------------------------------
+
+const normalized =
+    ActionValidator.validate({
+        type: "MULTIPLY",
+        factor: 3,
+        sides: ["LEFT", "RIGHT", "LEFT"]
+    });
+
+test(
+    "Tipo deve ser normalizado para lowercase",
+    normalized.action.type === "multiply"
+);
+
+test(
+    "Lados devem ser normalizados",
+    normalized.action.sides.includes("left") &&
+    normalized.action.sides.includes("right")
+);
+
+test(
+    "Lados duplicados devem ser removidos",
+    normalized.action.sides.length === 2
+);
+
+
+// --------------------------------------------------
+// ERROS ESTRUTURAIS
+// --------------------------------------------------
+
+expectError(
+    "Tipo desconhecido deve gerar erro",
+    () => ActionValidator.validate({
+        type: "potato",
+        sides: ["left", "right"]
+    })
+);
+
+expectError(
+    "Factor inválido deve gerar erro",
+    () => ActionValidator.validate({
+        type: "multiply",
+        factor: "2",
+        sides: ["left", "right"]
+    })
+);
+
+expectError(
+    "Divisor inválido deve gerar erro",
+    () => ActionValidator.validate({
+        type: "divide",
+        divisor: "2",
+        sides: ["left", "right"]
+    })
+);
+
+</script>
+
+</body>
+</html>

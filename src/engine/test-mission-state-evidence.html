@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Teste — MissionState + LearningEvidence</title>
+</head>
+
+<body>
+
+<h1>MissionState + LearningEvidence</h1>
+
+<div id="results"></div>
+
+<script type="module">
+
+import { EquationModel } from "../math/algebra/EquationModel.js";
+import { MissionState } from "./MissionState.js";
+import { LearningEvidence } from "./LearningEvidence.js";
+
+
+const results = [];
+
+function test(name, condition) {
+
+    results.push({
+        name,
+        passed: Boolean(condition)
+    });
+}
+
+
+function assertThrows(name, fn) {
+
+    try {
+
+        fn();
+
+        test(name, false);
+
+    } catch (error) {
+
+        test(name, true);
+    }
+}
+
+
+/* --------------------------------------------------
+ * MISSÃO
+ * -------------------------------------------------- */
+
+const equation =
+    new EquationModel({
+        left: [
+            { type: "x", coefficient: 2 },
+            { type: "constant", value: 4 }
+        ],
+        right: [
+            { type: "constant", value: 14 }
+        ]
+    });
+
+
+const mission =
+    new MissionState({
+        missionId: "equilibrio-01",
+        initialEquation: equation
+    });
+
+
+test(
+    "MissionState inicia sem evidências",
+    mission.evidences.length === 0
+);
+
+
+/* --------------------------------------------------
+ * EVIDÊNCIA 1
+ * -------------------------------------------------- */
+
+const evidence1 =
+    new LearningEvidence({
+
+        missionId: "equilibrio-01",
+
+        concept: "equivalence",
+
+        action: {
+            type: "subtract",
+            amount: 4,
+            sides: ["left", "right"]
+        },
+
+        representation: "concrete",
+
+        strategy: "equilibrium_progressive",
+
+        mathematicalResult: "equivalent",
+
+        transformationCreated: true,
+
+        mediationLevel: 1,
+
+        autonomy: "developing",
+
+        metadata: {
+            before: "2x + 4 = 14",
+            after: "2x = 10"
+        }
+    });
+
+
+mission.recordEvidence(evidence1);
+
+
+test(
+    "Registra uma evidência",
+    mission.evidences.length === 1
+);
+
+test(
+    "Evidência registrada é LearningEvidence",
+    mission.evidences[0] instanceof LearningEvidence
+);
+
+test(
+    "MissionState preserva missionId da evidência",
+    mission.evidences[0].missionId === "equilibrio-01"
+);
+
+test(
+    "MissionState preserva conceito",
+    mission.evidences[0].concept === "equivalence"
+);
+
+test(
+    "MissionState preserva representação",
+    mission.evidences[0].representation === "concrete"
+);
+
+test(
+    "MissionState preserva estratégia",
+    mission.evidences[0].strategy === "equilibrium_progressive"
+);
+
+test(
+    "MissionState preserva nível de mediação",
+    mission.evidences[0].mediationLevel === 1
+);
+
+
+/* --------------------------------------------------
+ * EVIDÊNCIA 2
+ * -------------------------------------------------- */
+
+const evidence2 =
+    new LearningEvidence({
+
+        missionId: "equilibrio-01",
+
+        concept: "equivalence",
+
+        action: {
+            type: "divide",
+            divisor: 2,
+            sides: ["left", "right"]
+        },
+
+        representation: "symbolic",
+
+        strategy: "equilibrium_progressive",
+
+        mathematicalResult: "equivalent",
+
+        transformationCreated: true,
+
+        mediationLevel: 0,
+
+        autonomy: "autonomous"
+    });
+
+
+mission.recordEvidence(evidence2);
+
+
+test(
+    "Registra segunda evidência",
+    mission.evidences.length === 2
+);
+
+test(
+    "Mantém ordem das evidências",
+    mission.evidences[0].action.type === "subtract" &&
+    mission.evidences[1].action.type === "divide"
+);
+
+
+/* --------------------------------------------------
+ * CLONE
+ * -------------------------------------------------- */
+
+const clone =
+    mission.clone();
+
+
+test(
+    "Clone preserva evidências",
+    clone.evidences.length === 2
+);
+
+test(
+    "Clone contém LearningEvidence",
+    clone.evidences[0] instanceof LearningEvidence
+);
+
+test(
+    "Clone possui evidência independente",
+    clone.evidences[0] !== mission.evidences[0]
+);
+
+test(
+    "Clone preserva dados da evidência",
+    clone.evidences[0].concept ===
+    mission.evidences[0].concept
+);
+
+clone.evidences.push(
+    new LearningEvidence({
+        missionId: "equilibrio-01",
+        concept: "equivalence",
+        action: {
+            type: "add",
+            amount: 1,
+            sides: ["left", "right"]
+        }
+    })
+);
+
+test(
+    "Alteração no clone não altera original",
+    clone.evidences.length === 3 &&
+    mission.evidences.length === 2
+);
+
+
+/* --------------------------------------------------
+ * SERIALIZAÇÃO
+ * -------------------------------------------------- */
+
+const json =
+    mission.toJSON();
+
+
+test(
+    "Serialização contém evidências",
+    Array.isArray(json.evidences)
+);
+
+test(
+    "Serialização preserva quantidade",
+    json.evidences.length === 2
+);
+
+test(
+    "Serialização preserva conceito",
+    json.evidences[0].concept === "equivalence"
+);
+
+test(
+    "Serialização preserva ação",
+    json.evidences[0].action.type === "subtract"
+);
+
+test(
+    "Serialização preserva resultado matemático",
+    json.evidences[0].mathematicalResult === "equivalent"
+);
+
+test(
+    "Serialização preserva transformação criada",
+    json.evidences[0].transformationCreated === true
+);
+
+
+/* --------------------------------------------------
+ * VALIDAÇÃO
+ * -------------------------------------------------- */
+
+assertThrows(
+    "Rejeita evidência inválida",
+    () => {
+        mission.recordEvidence({});
+    }
+);
+
+
+/* --------------------------------------------------
+ * RELATÓRIO
+ * -------------------------------------------------- */
+
+const container =
+    document.getElementById("results");
+
+const passed =
+    results.filter(
+        result => result.passed
+    ).length;
+
+const total =
+    results.length;
+
+
+container.innerHTML = `
+
+    <h2>
+        ${passed}/${total} testes aprovados
+    </h2>
+
+    <ul>
+
+        ${results.map(result => `
+
+            <li style="
+                color: ${result.passed ? "green" : "red"};
+            ">
+
+                ${result.passed ? "🟢" : "🔴"}
+                ${result.name}
+
+            </li>
+
+        `).join("")}
+
+    </ul>
+
+`;
+
+
+console.log(
+    `MissionState + LearningEvidence: ${passed}/${total}`
+);
+
+</script>
+
+</body>
+</html>

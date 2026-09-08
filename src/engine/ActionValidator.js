@@ -3,16 +3,17 @@
  * ActionValidator
  *
  * Responsabilidade:
- * Validar estruturalmente as ações realizadas
- * pelo estudante durante uma missão.
+ * Validar estruturalmente uma ação realizada pelo estudante.
  *
- * Não diagnostica o estudante.
- * Não define regras matemáticas.
- * Não altera a equação.
+ * Princípio arquitetural:
  *
  * ActionValidator
  *      ↓
- * descreve a ação executada
+ * verifica a estrutura da ação
+ *
+ * MissionEquilibrioController
+ *      ↓
+ * executa a ação matemática
  *
  * EquivalenceRules
  *      ↓
@@ -20,130 +21,52 @@
  *
  * ADA
  *      ↓
- * interpreta pedagogicamente a evidência
+ * posteriormente interpreta a evidência
+ *
+ * Importante:
+ * ActionValidator NÃO diagnostica o estudante.
+ * ActionValidator NÃO decide equivalência matemática.
  */
 
 export class ActionValidator {
 
-    /**
-     * Valida uma ação de operação sobre os dois lados.
-     *
-     * Exemplo:
-     *
-     * {
-     *     type: "subtract",
-     *     amount: 4,
-     *     sides: ["left", "right"]
-     * }
-     */
+    static SUPPORTED_ACTIONS = [
+        "subtract",
+        "add",
+        "multiply",
+        "divide"
+    ];
+
     static validate(action) {
 
-        this.validateActionObject(action);
-
-        const normalizedSides =
-            this.normalizeSides(action.sides);
-
-        const validSides =
-            normalizedSides.length > 0;
-
-        const bothSides =
-            normalizedSides.includes("left") &&
-            normalizedSides.includes("right");
-
-        return {
-
-            valid:
-                validSides,
-
-            structurallyComplete:
-                bothSides,
-
-            action: {
-                ...action,
-                sides: normalizedSides
-            },
-
-            result:
-                bothSides
-                    ? "both_sides"
-                    : "partial_side"
-
-        };
-    }
-
-
-    /**
-     * Verifica se a ação preserva estruturalmente
-     * a ideia de operar nos dois lados.
-     *
-     * Esta função NÃO prova equivalência matemática.
-     * Ela apenas verifica a estrutura da ação.
-     */
-    static preservesBothSides(action) {
-
-        const result =
-            this.validate(action);
-
-        return result.structurallyComplete;
-    }
-
-
-    /**
-     * Normaliza os lados informados.
-     *
-     * Remove duplicações e mantém apenas
-     * "left" e "right".
-     */
-    static normalizeSides(sides) {
-
-        if (!Array.isArray(sides)) {
-            throw new TypeError(
-                "sides deve ser um array."
-            );
-        }
-
-        const allowed =
-            new Set([
-                "left",
-                "right"
-            ]);
-
-        const normalized =
-            sides.filter(
-                side =>
-                    allowed.has(side)
-            );
-
-        return [
-            ...new Set(normalized)
-        ];
-    }
-
-
-    /**
-     * Valida a estrutura básica da ação.
-     */
-    static validateActionObject(action) {
-
-        if (
-            !action ||
-            typeof action !== "object"
-        ) {
+        if (!action || typeof action !== "object") {
             throw new TypeError(
                 "A ação deve ser um objeto."
             );
         }
-
 
         if (
             typeof action.type !== "string" ||
             action.type.trim() === ""
         ) {
             throw new TypeError(
-                "A ação deve possuir um tipo."
+                "A ação precisa possuir um tipo."
             );
         }
 
+        const type = action.type.trim().toLowerCase();
+
+        if (!this.SUPPORTED_ACTIONS.includes(type)) {
+            throw new Error(
+                `Tipo de ação não suportado: ${action.type}`
+            );
+        }
+
+        const normalizedAction = {
+            ...action,
+            type,
+            sides: this.normalizeSides(action.sides)
+        };
 
         if (
             action.amount !== undefined &&
@@ -157,11 +80,71 @@ export class ActionValidator {
             );
         }
 
-
-        if (!Array.isArray(action.sides)) {
+        if (
+            action.factor !== undefined &&
+            (
+                typeof action.factor !== "number" ||
+                !Number.isFinite(action.factor)
+            )
+        ) {
             throw new TypeError(
-                "A ação deve informar os lados."
+                "factor deve ser um número finito."
             );
         }
+
+        if (
+            action.divisor !== undefined &&
+            (
+                typeof action.divisor !== "number" ||
+                !Number.isFinite(action.divisor)
+            )
+        ) {
+            throw new TypeError(
+                "divisor deve ser um número finito."
+            );
+        }
+
+        const structurallyComplete =
+            this.preservesBothSides(normalizedAction);
+
+        return {
+            valid: true,
+            structurallyComplete,
+            action: normalizedAction,
+            result: structurallyComplete
+                ? "both_sides"
+                : "partial_side"
+        };
+    }
+
+    static normalizeSides(sides) {
+
+        if (!Array.isArray(sides)) {
+            return [];
+        }
+
+        return [
+            ...new Set(
+                sides
+                    .filter(side => typeof side === "string")
+                    .map(side => side.trim().toLowerCase())
+                    .filter(side =>
+                        side === "left" ||
+                        side === "right"
+                    )
+            )
+        ];
+    }
+
+    static preservesBothSides(action) {
+
+        const sides = this.normalizeSides(
+            action?.sides
+        );
+
+        return (
+            sides.includes("left") &&
+            sides.includes("right")
+        );
     }
 }

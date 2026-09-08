@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>
+        Teste — LearningEvidence
+    </title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #111827;
+            color: white;
+            padding: 30px;
+        }
+
+        h1 {
+            color: #f2c14e;
+        }
+
+        .test {
+            padding: 10px;
+            margin: 6px 0;
+            border-radius: 6px;
+        }
+
+        .ok {
+            background: #14532d;
+        }
+
+        .fail {
+            background: #7f1d1d;
+        }
+
+        .summary {
+            margin-top: 30px;
+            padding: 15px;
+            background: #1f2937;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<h1>
+    📊⚙️ LearningEvidence
+</h1>
+
+<p>
+    Validação do registro de evidências
+    da atividade matemática.
+</p>
+
+<div id="results"></div>
+
+<div id="summary" class="summary"></div>
+
+
+<script type="module">
+
+import { LearningEvidence }
+    from "./LearningEvidence.js";
+
+
+const results =
+    document.getElementById("results");
+
+const summary =
+    document.getElementById("summary");
+
+
+let total = 0;
+let passed = 0;
+
+
+function test(name, condition) {
+
+    total++;
+
+    if (condition) {
+        passed++;
+    }
+
+    const div =
+        document.createElement("div");
+
+    div.className =
+        "test " +
+        (condition ? "ok" : "fail");
+
+    div.textContent =
+        (condition ? "🟢 " : "🔴 ") +
+        name;
+
+    results.appendChild(div);
+}
+
+
+function expectError(name, fn) {
+
+    let error = false;
+
+    try {
+        fn();
+    } catch {
+        error = true;
+    }
+
+    test(name, error);
+}
+
+
+// ==================================================
+// EVIDÊNCIA 1
+//
+// AÇÃO EQUIVALENTE
+//
+// 2x + 4 = 14
+//      ↓ −4
+// 2x = 10
+// ==================================================
+
+const evidence1 =
+    new LearningEvidence({
+
+        missionId:
+            "equilibrio-01",
+
+        concept:
+            "equivalence",
+
+        action: {
+
+            type:
+                "subtract",
+
+            amount:
+                4,
+
+            sides: [
+                "left",
+                "right"
+            ]
+
+        },
+
+        representation:
+            "concrete",
+
+        strategy:
+            "equilibrio_progressivo",
+
+        mathematicalResult:
+            "equivalent",
+
+        transformationCreated:
+            true,
+
+        mediationLevel:
+            1,
+
+        autonomy:
+            "developing",
+
+        errorType:
+            null,
+
+        metadata: {
+
+            before:
+                "2x + 4 = 14",
+
+            after:
+                "2x = 10"
+        }
+    });
+
+
+// --------------------------------------------------
+// ESTRUTURA BÁSICA
+// --------------------------------------------------
+
+test(
+    "missionId deve ser preservado",
+    evidence1.missionId ===
+    "equilibrio-01"
+);
+
+test(
+    "conceito deve ser preservado",
+    evidence1.concept ===
+    "equivalence"
+);
+
+test(
+    "ação deve ser registrada",
+    evidence1.action.type ===
+    "subtract"
+);
+
+test(
+    "quantidade da ação deve ser registrada",
+    evidence1.action.amount === 4
+);
+
+test(
+    "os dois lados devem ser registrados",
+    evidence1.action.sides.length === 2
+);
+
+
+// --------------------------------------------------
+// REPRESENTAÇÃO E ESTRATÉGIA
+// --------------------------------------------------
+
+test(
+    "representação deve ser concrete",
+    evidence1.representation ===
+    "concrete"
+);
+
+test(
+    "estratégia deve ser registrada",
+    evidence1.strategy ===
+    "equilibrio_progressivo"
+);
+
+
+// --------------------------------------------------
+// RESULTADO MATEMÁTICO
+// --------------------------------------------------
+
+test(
+    "resultado matemático deve ser equivalent",
+    evidence1.mathematicalResult ===
+    "equivalent"
+);
+
+test(
+    "transformação deve ser registrada",
+    evidence1.transformationCreated ===
+    true
+);
+
+
+// --------------------------------------------------
+// MEDIAÇÃO E AUTONOMIA
+// --------------------------------------------------
+
+test(
+    "nível de mediação deve ser registrado",
+    evidence1.mediationLevel === 1
+);
+
+test(
+    "autonomia deve ser registrada",
+    evidence1.autonomy ===
+    "developing"
+);
+
+
+// --------------------------------------------------
+// METADADOS
+// --------------------------------------------------
+
+test(
+    "equação anterior deve ser preservada",
+    evidence1.metadata.before ===
+    "2x + 4 = 14"
+);
+
+test(
+    "equação posterior deve ser preservada",
+    evidence1.metadata.after ===
+    "2x = 10"
+);
+
+
+// ==================================================
+// EVIDÊNCIA 2
+//
+// AÇÃO NÃO EQUIVALENTE
+//
+// 2x + 4 = 14
+//      ↓ −4
+// somente à esquerda
+// ==================================================
+
+const evidence2 =
+    new LearningEvidence({
+
+        missionId:
+            "equilibrio-01",
+
+        concept:
+            "equivalence",
+
+        action: {
+
+            type:
+                "subtract",
+
+            amount:
+                4,
+
+            sides: [
+                "left"
+            ]
+
+        },
+
+        representation:
+            "concrete",
+
+        strategy:
+            null,
+
+        mathematicalResult:
+            "unbalanced",
+
+        transformationCreated:
+            false,
+
+        mediationLevel:
+            2,
+
+        autonomy:
+            "supported",
+
+        errorType:
+            "unilateral_transformation"
+    });
+
+
+test(
+    "Evidência de ação parcial deve existir",
+    evidence2.action.sides.length === 1
+);
+
+test(
+    "Ação parcial deve registrar somente left",
+    evidence2.action.sides[0] ===
+    "left"
+);
+
+test(
+    "Resultado deve ser unbalanced",
+    evidence2.mathematicalResult ===
+    "unbalanced"
+);
+
+test(
+    "Ação parcial não deve criar transformação",
+    evidence2.transformationCreated ===
+    false
+);
+
+test(
+    "Tipo de erro pode ser registrado",
+    evidence2.errorType ===
+    "unilateral_transformation"
+);
+
+
+// ==================================================
+// CLONE
+// ==================================================
+
+const cloned =
+    evidence1.clone();
+
+
+test(
+    "Clone deve preservar missionId",
+    cloned.missionId ===
+    evidence1.missionId
+);
+
+test(
+    "Clone deve preservar conceito",
+    cloned.concept ===
+    evidence1.concept
+);
+
+test(
+    "Clone deve preservar ação",
+    cloned.action.type ===
+    evidence1.action.type
+);
+
+test(
+    "Clone deve preservar resultado",
+    cloned.mathematicalResult ===
+    evidence1.mathematicalResult
+);
+
+test(
+    "Clone deve criar nova instância",
+    cloned !== evidence1
+);
+
+test(
+    "Clone deve criar nova ação",
+    cloned.action !== evidence1.action
+);
+
+
+// ==================================================
+// SERIALIZAÇÃO
+// ==================================================
+
+const json =
+    evidence1.toJSON();
+
+
+test(
+    "toJSON deve possuir missionId",
+    json.missionId !== undefined
+);
+
+test(
+    "toJSON deve possuir concept",
+    json.concept !== undefined
+);
+
+test(
+    "toJSON deve possuir action",
+    json.action !== undefined
+);
+
+test(
+    "toJSON deve possuir representation",
+    json.representation !== undefined
+);
+
+test(
+    "toJSON deve possuir strategy",
+    json.strategy !== undefined
+);
+
+test(
+    "toJSON deve possuir mathematicalResult",
+    json.mathematicalResult !== undefined
+);
+
+test(
+    "toJSON deve possuir transformationCreated",
+    json.transformationCreated !== undefined
+);
+
+test(
+    "toJSON deve possuir mediationLevel",
+    json.mediationLevel !== undefined
+);
+
+test(
+    "toJSON deve possuir autonomy",
+    json.autonomy !== undefined
+);
+
+test(
+    "toJSON deve possuir timestamp",
+    json.timestamp !== undefined
+);
+
+
+// ==================================================
+// VALIDAÇÕES
+// ==================================================
+
+expectError(
+    "missionId vazio deve ser rejeitado",
+    () => {
+
+        new LearningEvidence({
+
+            missionId:
+                "",
+
+            concept:
+                "equivalence",
+
+            action: {
+                type: "subtract"
+            }
+        });
+
+    }
+);
+
+
+expectError(
+    "conceito vazio deve ser rejeitado",
+    () => {
+
+        new LearningEvidence({
+
+            missionId:
+                "test",
+
+            concept:
+                "",
+
+            action: {
+                type: "subtract"
+            }
+        });
+
+    }
+);
+
+
+expectError(
+    "ação ausente deve ser rejeitada",
+    () => {
+
+        new LearningEvidence({
+
+            missionId:
+                "test",
+
+            concept:
+                "equivalence"
+
+        });
+
+    }
+);
+
+
+expectError(
+    "transformationCreated inválido deve ser rejeitado",
+    () => {
+
+        new LearningEvidence({
+
+            missionId:
+                "test",
+
+            concept:
+                "equivalence",
+
+            action: {
+                type: "subtract"
+            },
+
+            transformationCreated:
+                "true"
+        });
+
+    }
+);
+
+
+// ==================================================
+// RESULTADO
+// ==================================================
+
+summary.textContent =
+    `${passed}/${total} testes aprovados`;
+
+if (passed === total) {
+
+    summary.style.color =
+        "#86efac";
+
+    summary.textContent +=
+        " — EVIDÊNCIA VALIDADA 🟢📊⚙️";
+
+} else {
+
+    summary.style.color =
+        "#fca5a5";
+
+    summary.textContent +=
+        " — existem falhas a investigar 🔴";
+}
+
+</script>
+
+</body>
+
+</html>
